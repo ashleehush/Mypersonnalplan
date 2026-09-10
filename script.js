@@ -327,6 +327,14 @@ function applyAppearance(){
   const bgSel = document.getElementById('bgSelect');
   if(palSel) palSel.value = state.settings.palette || 'dore';
   if(bgSel) bgSel.value = state.settings.bg || 'dore';
+
+  const musicBar = document.getElementById('musicCard');
+  if(musicBar){
+    const collapsed = !!state.settings.musicCollapsed;
+    musicBar.classList.toggle('collapsed', collapsed);
+    const arrow = document.getElementById('musicBarArrow');
+    if(arrow) arrow.textContent = collapsed ? '▸' : '▾';
+  }
 }
 function setPalette(v){
   if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
@@ -423,6 +431,20 @@ function renderMusicOfDay(){
   const dayOfYear = Math.floor((new Date() - start) / 86400000);
   const id = ids[(dayOfYear + 17) % ids.length];
   box.innerHTML = '<div class="video-wrap"><iframe src="https://www.youtube.com/embed/'+id+'" title="Louange & adoration" allow="accelerometer; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>';
+}
+/* Replie/déplie le lecteur "Louange & adoration" — repliée, la musique
+   continue à jouer (on ne fait que la rétrécir visuellement à 0 avec
+   max-height, jamais display:none, qui coupe le son de l'iframe dans
+   certains navigateurs). L'état choisi est mémorisé. */
+function toggleMusicBar(){
+  const bar = document.getElementById('musicCard');
+  if(!bar) return;
+  const collapsed = bar.classList.toggle('collapsed');
+  const arrow = document.getElementById('musicBarArrow');
+  if(arrow) arrow.textContent = collapsed ? '▸' : '▾';
+  if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
+  state.settings.musicCollapsed = collapsed;
+  persist();
 }
 
 /* =========================================================================

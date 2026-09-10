@@ -34,6 +34,17 @@
 
 <div id="syncBadge" class="syncbadge local no-print">⚪ Mode local (non synchronisé)</div>
 
+<!-- Musique de fond — en dehors des pages (#appRoot) pour rester à l'écran
+     et continuer à jouer même en changeant de page, puisque c'est une
+     appli "une seule page" (les onglets ne font qu'afficher/masquer des
+     blocs, rien n'est jamais rechargé). -->
+<div id="musicCard" class="music-bar no-print" style="display:none;">
+  <button class="music-bar-toggle" onclick="toggleMusicBar()">🙏 Louange &amp; adoration <span id="musicBarArrow">▾</span></button>
+  <div id="musicBarBody" class="music-bar-body">
+    <div id="musicOfDay"></div>
+  </div>
+</div>
+
 <!-- Écran de connexion : visible seulement si Firebase est configuré et que l'utilisatrice n'est pas encore connectée -->
 <div id="loginScreen" class="card login-screen no-print" style="display:none;">
   <h2>Connexion</h2>
@@ -85,11 +96,6 @@
   <div class="card" id="videoCard" style="display:none;">
     <h2>🎥 Message du jour</h2>
     <div id="videoOfDay"></div>
-  </div>
-
-  <div class="card" id="musicCard" style="display:none;">
-    <h2>🙏 Louange &amp; adoration</h2>
-    <div id="musicOfDay"></div>
   </div>
 
 </section>
@@ -212,14 +218,6 @@
     <h2>🔔 Rappels</h2>
     <div class="detail" id="notifStatus" style="margin:4px 0 8px;">🔕 Rappels désactivés</div>
     <button id="notifBtn" onclick="toggleNotifs()">Activer les rappels</button>
-  </div>
-
-  <div class="card">
-    <h2>🎥 Message du jour</h2>
-  </div>
-
-  <div class="card">
-    <h2>🙏 Louange &amp; adoration</h2>
   </div>
 </section>
 

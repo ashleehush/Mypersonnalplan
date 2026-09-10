@@ -211,6 +211,24 @@
   .spotify-wrap{ border-radius:12px; overflow:hidden; }
   .spotify-wrap iframe{ display:block; width:100%; height:152px; border:0; }
 
+  /* --- Ajouts : barre "Louange & adoration" persistante (musique de fond) ---
+     En dehors des pages, donc toujours affichée et jamais interrompue en
+     changeant d'onglet. Repliable : on la rétrécit avec max-height plutôt
+     que display:none pour ne jamais couper le son en cours de lecture. */
+  .music-bar{
+    background:var(--cream-alt); border-radius:12px; margin-bottom:14px; border:1px solid #e0d8c0;
+    overflow:hidden;
+  }
+  .music-bar-toggle{
+    width:100%; background:none; border:none; text-align:left; padding:12px 16px;
+    font-size:.9rem; text-transform:uppercase; letter-spacing:1px; color:var(--khaki-dark);
+    font-weight:bold; cursor:pointer; display:flex; justify-content:space-between; align-items:center;
+    margin-top:0;
+  }
+  .music-bar-body{ max-height:250px; overflow:hidden; transition:max-height .3s ease; padding:0 16px; }
+  .music-bar-body > div{ padding-bottom:14px; }
+  .music-bar.collapsed .music-bar-body{ max-height:0; }
+
   /* --- Ajouts : plans thématiques — grille d'icônes + jauge --- */
   .plans-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; }
   .plan-tile{
