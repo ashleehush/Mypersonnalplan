@@ -60,12 +60,13 @@
     }
     h1{ font-size:1.3rem; padding:20px 10px; }
     .card{ padding:20px 26px; }
-    #page-accueil:not([hidden]){ display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
-    #page-accueil .verse-card{ grid-column:1 / -1; }
-    #page-accueil .card:has(#banner){ grid-column:1 / -1; }
-    #page-accueil .card:has(#videoOfDay){ grid-column:1 / -1; }
+    /* Une seule colonne partout, y compris sur Accueil — plus simple et plus
+       fiable qu'une mise en page à 2 colonnes (qui pouvait faire apparaître
+       une carte à côté d'une autre au lieu d'en dessous, selon l'appareil
+       et l'orientation). La largeur et le fond plus riches suffisent à
+       remplir l'écran sur iPad. */
     #page-journal-chapitres .card, #page-journal-comprehension .card,
-    #page-prieres .card, #page-parametres .card{ max-width:640px; margin-left:auto; margin-right:auto; }
+    #page-prieres .card, #page-parametres .card, #page-accueil .card{ max-width:640px; margin-left:auto; margin-right:auto; }
   }
   @media (min-width:1000px){
     body{ max-width:1040px; }
