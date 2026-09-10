@@ -57,7 +57,19 @@ function parseRef(ref){
    Semeur, Parole de Vie, Darby, Amplified) sont protégées par des droits
    d'auteur : impossible d'en recopier le texte ici sans l'accord de
    l'éditeur, donc on ouvre le bon verset, déjà sélectionné, directement
-   sur bible.com dans un nouvel onglet — un seul site pour les 5 versions. */
+   sur bible.com dans un nouvel onglet — un seul site pour les 5 versions.
+
+   Pour Segond 21, Semeur et Darby, EMCI TV (emcitv.com) propose une page
+   de lecture simple, juste le texte, sans rien d'autre — préférée à
+   bible.com pour ces trois-là. Parole de Vie et Amplified ne sont pas
+   disponibles sur EMCI, donc ces deux-là restent sur bible.com. */
+function slugifyBookForEmci(livre){
+  return livre
+    .normalize('NFD').replace(/[̀-ͯ]/g, '') // enlève les accents
+    .toLowerCase()
+    .replace(/'/g, '')
+    .replace(/\s+/g, '-');
+}
 function verseVersionLinks(ref){
   const p = parseRef(ref);
   if(!p) return [];
@@ -65,11 +77,13 @@ function verseVersionLinks(ref){
   const bookCode = idx >= 0 ? BOOK_CODE_BIBLECOM[idx] : null;
   if(!bookCode) return [];
   const loc = bookCode + '.' + p.chapitre + '.' + p.verset;
+  const emciBook = slugifyBookForEmci(p.livre);
+  const emciBase = 'https://emcitv.com/bible/' + emciBook + '-' + p.chapitre;
   const links = [
-    { label:'Segond 21', url:'https://www.bible.com/bible/152/'+loc+'.S21' },
-    { label:'Semeur', url:'https://www.bible.com/bible/21/'+loc+'.BDS' },
+    { label:'Segond 21', url: emciBase + '-segond_21.html#' + p.verset },
+    { label:'Semeur', url: emciBase + '.html#' + p.verset },
     { label:'Parole de Vie', url:'https://www.bible.com/bible/133/'+loc+'.PDV2017' },
-    { label:'Darby', url:'https://www.bible.com/bible/64/'+loc+'.JND' },
+    { label:'Darby', url: emciBase + '-darby.html#' + p.verset },
     { label:'Amplified (EN)', url:'https://www.bible.com/bible/1588/'+loc+'.AMP' }
   ];
   return links;
