@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Ma Bible">
+<meta name="theme-color" content="#534B32">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Suivi de lecture biblique</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1>SUIVI DE LECTURE</h1>
+
+<div id="syncBadge" class="syncbadge local">⚪ Mode local (non synchronisé)</div>
+
+<!-- Écran de connexion : visible seulement si Firebase est configuré et que l'utilisatrice n'est pas encore connectée -->
+<div id="loginScreen" class="card login-screen" style="display:none;">
+  <h2>Connexion</h2>
+  <p class="subnote">Connecte-toi avec ton compte Google pour synchroniser tes lectures entre ton téléphone et ton ordinateur.</p>
+  <button onclick="loginGoogle()">Se connecter avec Google</button>
+</div>
+
+<div id="appRoot">
+
+<div class="kpis">
+  <div class="kpi taux"><div class="label">Taux</div><div class="value" id="kpiTaux">0%</div></div>
+  <div class="kpi rest"><div class="label">Ch. restants</div><div class="value" id="kpiRestants">-</div></div>
+  <div class="kpi pages"><div class="label">Pages rest.</div><div class="value" id="kpiPages">-</div></div>
+</div>
+
+<div class="card">
+  <h2>📍 Ma position actuelle</h2>
+  <div id="positionCurrent" class="detail" style="margin-top:0;"></div>
+  <details style="margin-top:10px;">
+    <summary>Voir le détail des 66 livres</summary>
+    <div id="positionList" style="margin-top:10px; max-height:280px; overflow-y:auto;"></div>
+  </details>
+</div>
+
+<div class="card">
+  <h2>🎯 Objectif du jour (global)</h2>
+  <div class="banner" id="banner">...</div>
+  <div class="detail" id="detail"></div>
+  <div class="reminder" id="reminder" style="display:none;"></div>
+</div>
+
+<div class="card">
+  <h2>Avancement global</h2>
+  <div class="donut-wrap"><svg id="donut" width="150" height="150" viewBox="0 0 160 160"></svg></div>
+</div>
+
+<div class="card">
+  <h2>Réglages</h2>
+  <label>Date de début du plan</label>
+  <input type="date" id="dateDebut">
+  <button onclick="saveSettings()">Enregistrer</button>
+  <div id="accountBox" style="margin-top:10px; display:none;">
+    <div class="subnote" style="margin:6px 0 0;">Connectée : <span id="userEmail"></span></div>
+    <button onclick="logout()" style="background:var(--khaki-med);">Se déconnecter</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>📘 Journal des chapitres</h2>
+  <div class="subnote">Une ligne par lecture. Pour rattraper plusieurs chapitres, mets "de" et "à" différents (ex: 1 à 5). Pour un seul chapitre, mets le même chiffre des deux côtés.</div>
+  <label>Livre</label>
+  <select id="logLivre"></select>
+  <div class="row2">
+    <div><label>Chapitre de</label><input type="number" id="logDe" min="1" value="1"></div>
+    <div><label>Chapitre à</label><input type="number" id="logA" min="1" value="1"></div>
+  </div>
+  <label>Date</label>
+  <input type="date" id="logDate">
+  <button onclick="addLog()">Ajouter au journal</button>
+  <div id="logList" style="margin-top:12px;"></div>
+</div>
+
+<div class="card">
+  <h2>📖 Journal de compréhension</h2>
+  <div class="subnote">Se remplit avec ta dernière lecture enregistrée ci-dessus.</div>
+  <label>Verset qui t'a marquée (optionnel)</label>
+  <input type="text" id="compVerset" placeholder="ex: verset 6">
+  <label>Ce que j'ai compris</label>
+  <textarea id="compNote" placeholder="Écris ce que tu retiens..."></textarea>
+  <button onclick="addComp()">Ajouter au journal</button>
+  <div id="compList" style="margin-top:12px;"></div>
+</div>
+
+<div class="card">
+  <h2>🙏 Prières</h2>
+  <label>Verset qui m'a parlé</label>
+  <input type="text" id="prayerVerse" placeholder="ex: le verset qui t'a touchée">
+  <label>Ma prière</label>
+  <textarea id="prayerText" placeholder="Écris ta prière..."></textarea>
+  <button onclick="addPrayer()">Ajouter ma prière</button>
+  <div id="prayerList" style="margin-top:12px;"></div>
+</div>
+
+</div><!-- /appRoot -->
+
+<!-- Firebase (chargé seulement pour permettre la synchronisation ; sans configuration valide, l'appli reste en mode local) -->
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<script src="script.js"></script>
+</body>
+</html>

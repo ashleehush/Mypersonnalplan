@@ -1,0 +1,82 @@
+:root{
+    --cream:#FBF7EF; --cream-alt:#F0E9D8; --khaki-dark:#534B32; --khaki-med:#8A8060;
+    --gold:#B7975A; --gold-light:#EBDFC2; --taupe:#A79C7E; --olive:#6B6440;
+    --text-dark:#3A3524; --text-light:#FBF7EF; --red:#B3261E; --green:#2E5E3A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:"Avenir","Segoe UI",sans-serif; background:var(--cream);
+    color:var(--text-dark); padding:calc(env(safe-area-inset-top) + 16px) 16px 40px; max-width:640px; margin:0 auto;
+  }
+  h1{
+    background:var(--khaki-dark); color:var(--text-light); text-align:center;
+    padding:16px 8px; border-radius:10px; font-size:1.05rem; letter-spacing:2px;
+    margin:0 0 16px;
+  }
+  .card{background:var(--cream-alt); border-radius:12px; padding:14px 16px; margin-bottom:14px; border:1px solid #e0d8c0;}
+  .card h2{margin:0 0 10px; font-size:.9rem; text-transform:uppercase; letter-spacing:1px; color:var(--khaki-dark);}
+  .subnote{font-size:.75rem; color:var(--taupe); font-style:italic; margin:-4px 0 10px;}
+  label{display:block; font-size:.78rem; margin:8px 0 3px; color:var(--khaki-med); font-weight:bold;}
+  input, select, textarea{
+    width:100%; padding:9px 10px; border-radius:7px; border:1px solid #d8cca3;
+    background:var(--gold-light); font-family:inherit; font-size:.92rem; color:var(--text-dark);
+  }
+  textarea{resize:vertical; min-height:55px;}
+  .row2{display:flex; gap:8px;}
+  .row2 > div{flex:1;}
+  button{
+    background:var(--gold); color:var(--text-light); border:none; padding:10px 16px;
+    border-radius:8px; font-weight:bold; font-size:.88rem; margin-top:10px; cursor:pointer;
+  }
+  button:active{opacity:.85;}
+  .kpis{display:flex; gap:8px; margin-bottom:14px;}
+  .kpi{flex:1; border-radius:10px; padding:12px 6px; text-align:center; color:var(--text-light);}
+  .kpi .label{font-size:.62rem; text-transform:uppercase; letter-spacing:.5px; opacity:.9;}
+  .kpi .value{font-size:1.4rem; font-weight:bold; margin-top:4px;}
+  .kpi.taux{background:var(--olive);}
+  .kpi.rest{background:var(--khaki-med);}
+  .kpi.pages{background:var(--gold);}
+  .banner{border-radius:10px; padding:16px; text-align:center; font-weight:bold; font-size:1.05rem;}
+  .banner.late{background:var(--gold-light); color:var(--red);}
+  .banner.ok{background:var(--gold-light); color:var(--green);}
+  .banner.notstarted{background:var(--gold-light); color:var(--khaki-med);}
+  .detail{text-align:center; font-size:.78rem; color:var(--taupe); margin-top:8px; font-style:italic;}
+  .reminder{
+    margin-top:10px; background:var(--gold-light); color:#8A6D3D; font-weight:bold;
+    font-size:.85rem; text-align:center; border-radius:8px; padding:10px;
+  }
+  .donut-wrap{display:flex; justify-content:center; margin:10px 0;}
+  .entry{
+    background:var(--cream); border:1px solid #e5dcc0; border-radius:8px; padding:10px;
+    margin-bottom:8px; font-size:.85rem;
+  }
+  .entry .meta{color:var(--khaki-med); font-weight:bold; font-size:.75rem; margin-bottom:4px;}
+  .entry .del{float:right; color:var(--red); cursor:pointer; font-size:.75rem;}
+  .empty{color:var(--taupe); font-style:italic; font-size:.85rem;}
+
+  /* --- Ajouts : synchronisation & connexion --- */
+  .syncbadge{
+    text-align:center; font-size:.7rem; font-weight:bold; letter-spacing:.3px;
+    padding:6px; border-radius:8px; margin:-8px 0 14px; background:var(--gold-light); color:var(--khaki-med);
+  }
+  .syncbadge.synced{color:var(--green);}
+  .syncbadge.error{color:var(--red);}
+  .syncbadge.connecting{color:var(--khaki-med);}
+  .login-screen{
+    display:flex; flex-direction:column; align-items:center; text-align:center; padding:28px 20px;
+  }
+  .login-screen h2{margin-bottom:8px;}
+  .login-screen button{min-width:220px;}
+
+  /* --- Ajouts : position actuelle --- */
+  details summary{cursor:pointer; font-size:.78rem; color:var(--khaki-med); font-weight:bold; list-style:none;}
+  details summary::-webkit-details-marker{display:none;}
+  details summary::before{content:"▸ "; }
+  details[open] summary::before{content:"▾ "; }
+  .poslivre{
+    display:flex; justify-content:space-between; padding:6px 4px; font-size:.8rem;
+    border-bottom:1px solid #e5dcc0;
+  }
+  .poslivre.done{color:var(--green);}
+  .poslivre.current{color:var(--text-dark); font-weight:bold; background:var(--gold-light); border-radius:5px; padding-left:6px;}
+  .poslivre.todo{color:var(--taupe);}
