@@ -181,7 +181,6 @@
 
   <div class="card">
     <h2>🎨 Apparence</h2>
-    <div class="subnote">Choisis les couleurs et le fond qui te plaisent — ça s'applique tout de suite, partout dans l'appli.</div>
     <label>Palette de couleurs</label>
     <select id="paletteSelect" onchange="setPalette(this.value)">
       <option value="dore">Doré (classique)</option>
@@ -205,24 +204,20 @@
       <option value="ciel">Ciel</option>
       <option value="aurore">Aurore boréale</option>
     </select>
-    <div class="subnote" style="margin-top:6px;">Les fonds sont des ambiances de couleurs dessinées (pas de vraies photos), pour que l'appli reste rapide et fonctionne même sans connexion. En mode "Change chaque jour", 60 ambiances différentes tournent automatiquement, un jour après l'autre.</div>
   </div>
 
   <div class="card">
     <h2>🔔 Rappels</h2>
-    <div class="subnote">Un rappel s'affiche dès que ça fait plusieurs jours sans lecture enregistrée. Comme cette appli n'a pas de serveur, il ne peut pas arriver quand l'appli est fermée — mais il se déclenche automatiquement dès que tu la rouvres, sans rien à faire.</div>
     <div class="detail" id="notifStatus" style="margin:4px 0 8px;">🔕 Rappels désactivés</div>
     <button id="notifBtn" onclick="toggleNotifs()">Activer les rappels</button>
   </div>
 
   <div class="card">
-    <h2>🎥 Message / prédication du jour</h2>
-    <div class="subnote">Tes liens YouTube favoris (vidéos classiques ou Shorts, les deux marchent) se gèrent directement dans le fichier <code>video-config.js</code> sur GitHub (pas ici, pour ne pas encombrer l'appli). Un message différent s'affiche automatiquement chaque jour sur la page d'Accueil.</div>
+    <h2>🎥 Message du jour</h2>
   </div>
 
   <div class="card">
     <h2>🎵 Musique du jour</h2>
-    <div class="subnote">Ça se règle dans le fichier <code>music-config.js</code> sur GitHub, avec deux options : soit coller le lien de partage d'une de tes playlists Spotify (n'importe qui peut alors l'écouter directement dans l'appli, sans compte), soit une liste de liens YouTube dont un titre différent s'affiche chaque jour. La carte s'affiche à côté du message du jour, et reste masquée tant que rien n'est configuré.</div>
   </div>
 </section>
 
