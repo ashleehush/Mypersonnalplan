@@ -377,6 +377,55 @@ function renderVideoOfDay(){
 }
 
 /* =========================================================================
+   MUSIQUE DU JOUR — même principe que le message du jour ci-dessus, mais
+   avec sa propre liste (music-config.js) et son propre décalage dans la
+   rotation quotidienne (+17) pour ne pas toujours changer le même jour que
+   la vidéo.
+   ========================================================================= */
+function getMusicIds(){
+  const links = (typeof musicLinks !== 'undefined' && Array.isArray(musicLinks)) ? musicLinks : [];
+  return links.map(extractYouTubeId).filter(Boolean);
+}
+/* Accepte un lien de playlist Spotify ("Partager" > "Copier le lien vers
+   la playlist") sous ses différentes formes (open.spotify.com/playlist/...,
+   avec ou sans paramètres après le ?, ou spotify:playlist:...). */
+function extractSpotifyPlaylistId(url){
+  if(!url) return null;
+  const m = String(url).match(/playlist[/:]([A-Za-z0-9]+)/);
+  return m ? m[1] : null;
+}
+function renderMusicOfDay(){
+  const box = document.getElementById('musicOfDay');
+  const card = document.getElementById('musicCard');
+  if(!box) return;
+
+  // Priorité à une playlist Spotify si elle est configurée : plus simple,
+  // et ça permet à n'importe qui d'écouter directement sans compte,
+  // Spotify se chargeant lui-même de faire défiler les titres.
+  const spotifyId = (typeof spotifyPlaylistUrl !== 'undefined') ? extractSpotifyPlaylistId(spotifyPlaylistUrl) : null;
+  if(spotifyId){
+    if(card) card.style.display = '';
+    box.innerHTML = '<div class="spotify-wrap"><iframe src="https://open.spotify.com/embed/playlist/'+spotifyId+'?utm_source=generator" '
+      + 'title="Musique du jour" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe></div>';
+    return;
+  }
+
+  // Sinon, on retombe sur la liste de liens YouTube (même principe que la
+  // vidéo du jour) : un titre différent choisi automatiquement chaque jour.
+  const ids = getMusicIds();
+  if(!ids.length){
+    if(card) card.style.display = 'none';
+    box.innerHTML = '';
+    return;
+  }
+  if(card) card.style.display = '';
+  const start = new Date(new Date().getFullYear(), 0, 0);
+  const dayOfYear = Math.floor((new Date() - start) / 86400000);
+  const id = ids[(dayOfYear + 17) % ids.length];
+  box.innerHTML = '<div class="video-wrap"><iframe src="https://www.youtube.com/embed/'+id+'" title="Musique du jour" allow="accelerometer; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>';
+}
+
+/* =========================================================================
    RAPPELS / NOTIFICATIONS — vérifiés à chaque ouverture de l'appli (et
    chaque retour au premier plan). Sans serveur derrière une appli gratuite
    hébergée sur GitHub Pages, une vraie notification "appli fermée" n'est
@@ -470,7 +519,7 @@ function initCloudIfConfigured(){
             if(!state.settings) state.settings = {palette:'dore', bg:'dore'};
             document.getElementById('dateDebut').value = state.dateDebut;
             renderLog(); renderComp(); renderPrayers(); compute(); refreshVerseSelects();
-            applyAppearance(); updateNotifUI(); renderVideoOfDay(); renderThematicPlans();
+            applyAppearance(); updateNotifUI(); renderVideoOfDay(); renderMusicOfDay(); renderThematicPlans();
             checkAndNotify();
           } else {
             // premier lancement pour ce compte : on crée le document
@@ -525,7 +574,7 @@ async function loadState(){
     document.getElementById('dateDebut').value = state.dateDebut;
     document.getElementById('logDate').value = todayStr();
     renderLog(); renderComp(); renderPrayers(); compute(); refreshVerseSelects();
-    applyAppearance(); updateNotifUI(); renderVideoOfDay(); renderThematicPlans();
+    applyAppearance(); updateNotifUI(); renderVideoOfDay(); renderMusicOfDay(); renderThematicPlans();
     checkAndNotify();
   } else {
     document.getElementById('logDate').value = todayStr();
@@ -1332,8 +1381,15 @@ function readerToggleDone(){
   const plan = THEMATIC_PLANS.find(p=>p.id===readerPlanId);
   const total = plan ? activeJours(plan).length : 0;
   const wasDone = !!state.thematicProgress[readerPlanId][readerDayIndex];
-  const justFinishedLastDay = plan && !wasDone && readerDayIndex === total-1;
   state.thematicProgress[readerPlanId][readerDayIndex] = !wasDone;
+  const nowAllDone = plan && activeJours(plan).every((_,i)=> !!state.thematicProgress[readerPlanId][i]);
+  const justFinishedLastDay = plan && !wasDone && readerDayIndex === total-1 && nowAllDone;
+  if(justFinishedLastDay){
+    // Historique des complétions : gardé même après un "Recommencer", pour
+    // pouvoir dire par exemple qu'un plan a été fait deux fois.
+    if(!state.thematicCompletions) state.thematicCompletions = {};
+    state.thematicCompletions[readerPlanId] = (state.thematicCompletions[readerPlanId]||0) + 1;
+  }
   persist();
   renderReaderDay();
   if(justFinishedLastDay){
@@ -1398,50 +1454,6 @@ function closeMenu(){
    externe à télécharger), pour rester léger et fonctionner hors connexion.
    ========================================================================= */
 
-/* Progression cumulée dans le temps, en pages ET en chapitres (estimation :
-   1200 pages pour l'ensemble de la Bible, répartie au prorata des
-   chapitres lus). Une entrée par date où au moins une lecture a été
-   enregistrée. */
-function computeReadingTimeline(){
-  const entries = state.chapterLog.slice().sort((a,b)=> a.date.localeCompare(b.date));
-  const model = {};
-  allBooks.forEach(b=> model[b] = new Set());
-  const byDate = {};
-  entries.forEach(e=>{
-    if(!model[e.livre]) model[e.livre] = new Set();
-    for(let c=e.de;c<=e.a;c++) model[e.livre].add(c);
-    const chapitresCumules = Object.values(model).reduce((s,set)=>s+set.size,0);
-    byDate[e.date] = chapitresCumules;
-  });
-  const dates = Object.keys(byDate).sort();
-  return dates.map(d=> ({ date:d, chapitres: byDate[d], pages: Math.round((byDate[d]/TOTAL_CHAPTERS)*1200) }));
-}
-function renderTimelineChart(points, key, color, unit){
-  if(points.length < 2){
-    return '<div class="empty">Pas encore assez de lectures à des dates différentes pour tracer une courbe.</div>';
-  }
-  const w = 300, h = 110, pad = 8;
-  const maxV = Math.max(...points.map(p=>p[key])) || 1;
-  const stepX = (w - pad*2) / (points.length - 1);
-  const coords = points.map((p,i)=>{
-    const x = pad + i*stepX;
-    const y = h - pad - ((p[key]/maxV) * (h - pad*2));
-    return [x,y];
-  });
-  const linePath = coords.map((c,i)=> (i===0?'M':'L')+c[0].toFixed(1)+','+c[1].toFixed(1)).join(' ');
-  const areaPath = linePath
-    + ' L' + coords[coords.length-1][0].toFixed(1) + ',' + (h-pad)
-    + ' L' + coords[0][0].toFixed(1) + ',' + (h-pad) + ' Z';
-  const lastVal = points[points.length-1][key];
-  const firstLabel = fmtDate(parseDate(points[0].date));
-  const lastLabel = fmtDate(parseDate(points[points.length-1].date));
-  return '<svg viewBox="0 0 '+w+' '+h+'" style="width:100%; height:110px; display:block;">'
-    + '<path d="'+areaPath+'" fill="'+color+'" opacity="0.15"/>'
-    + '<path d="'+linePath+'" fill="none" stroke="'+color+'" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>'
-    + '</svg>'
-    + '<div class="chart-labels"><span>'+firstLabel+'</span><span><strong>'+lastVal+'</strong> '+unit+' au total</span><span>'+lastLabel+'</span></div>';
-}
-
 /* Chapitres lus par livre, dans l'ordre du plan de lecture (uniquement les
    livres déjà commencés, pour rester lisible). */
 function renderBooksBarChart(){
@@ -1459,32 +1471,67 @@ function renderBooksBarChart(){
   }).join('') + '</div>';
 }
 
-/* Répartition des 21 plans thématiques : terminés / en cours / non
-   commencés, en donut (mêmes couleurs fixes que les cases Taux / Ch.
-   restants / Pages rest. de l'accueil, jamais orange/rouge/violet/rose). */
-function renderPlansDonut(plansProgress){
+/* Petits utilitaires géométriques pour dessiner un vrai camembert (secteurs
+   pleins, pas un anneau) en SVG, sans librairie externe. */
+function polarToCartesian(cx, cy, r, angleDeg){
+  const rad = (angleDeg - 90) * Math.PI / 180; // 0° = midi, sens horaire
+  return { x: cx + r*Math.cos(rad), y: cy + r*Math.sin(rad) };
+}
+function pieSlicePath(cx, cy, r, startAngle, endAngle){
+  if(endAngle - startAngle >= 359.99){
+    // Un secteur qui couvre tout le cercle : un cercle plein dessiné en
+    // deux demi-arcs (un seul arc de 360° ne se dessine pas correctement).
+    const p1 = polarToCartesian(cx, cy, r, startAngle);
+    const pMid = polarToCartesian(cx, cy, r, startAngle+180);
+    return 'M '+p1.x+' '+p1.y+' A '+r+' '+r+' 0 1 1 '+pMid.x+' '+pMid.y+' A '+r+' '+r+' 0 1 1 '+p1.x+' '+p1.y+' Z';
+  }
+  const start = polarToCartesian(cx, cy, r, startAngle);
+  const end = polarToCartesian(cx, cy, r, endAngle);
+  const largeArc = (endAngle - startAngle) > 180 ? 1 : 0;
+  return 'M '+cx+' '+cy+' L '+start.x.toFixed(2)+' '+start.y.toFixed(2)
+    + ' A '+r+' '+r+' 0 '+largeArc+' 1 '+end.x.toFixed(2)+' '+end.y.toFixed(2)+' Z';
+}
+
+/* Répartition synthétique des 21 plans thématiques — Terminés / En cours /
+   Non commencés — en vrai camembert (secteurs pleins, mêmes couleurs fixes
+   que les cases Taux / Ch. restants / Pages rest. de l'accueil), avec une
+   légende compacte. Plus de liste plan par plan ici (déjà visible dans
+   l'onglet Plans thématiques) : juste le total des fois où un plan a été
+   complété, quand c'est plus d'une fois. */
+function renderPlansPie(plansProgress){
   const total = plansProgress.length || 1;
   const termines = plansProgress.filter(p=>p.pct===100).length;
   const enCours = plansProgress.filter(p=>p.pct>0 && p.pct<100).length;
   const nonCommences = total - termines - enCours;
-  const r = 52, cx=62, cy=62, circ = 2*Math.PI*r;
-  const segTermine = circ * (termines/total);
-  const segEnCours = circ * (enCours/total);
-  const segNonCommence = circ * (nonCommences/total);
-  const offTermine = circ*0.25;
-  const offEnCours = circ*0.25 - segTermine;
-  const offNonCommence = circ*0.25 - (segTermine + segEnCours);
+  const segments = [
+    { label:'Terminés', value: termines, color:'var(--kpi-taux)' },
+    { label:'En cours', value: enCours, color:'var(--kpi-rest)' },
+    { label:'Non commencés', value: nonCommences, color:'var(--kpi-pages)' }
+  ];
+  const r = 58, cx = 64, cy = 64;
+  let angle = 0;
+  const slices = segments.filter(s=> s.value > 0).map(s=>{
+    const sweep = (s.value/total) * 360;
+    const path = pieSlicePath(cx, cy, r, angle, angle + sweep);
+    angle += sweep;
+    return '<path d="'+path+'" fill="'+s.color+'"/>';
+  }).join('');
+  const legend = segments.map(s=>
+    '<div><span class="dot" style="background:'+s.color+'"></span>'+s.label+' : <strong>'+s.value+'/'+total+'</strong></div>'
+  ).join('');
+
+  const repeats = Object.keys(state.thematicCompletions || {})
+    .map(id=> ({ count: state.thematicCompletions[id], titre: (THEMATIC_PLANS.find(p=>p.id===id)||{}).titre }))
+    .filter(r=> r.titre && r.count > 1);
+  const repeatsHtml = repeats.length
+    ? '<div class="plans-repeats">' + repeats.map(r=> '<span class="plan-repeat-badge">🔁 '+r.titre+' × '+r.count+'</span>').join('') + '</div>'
+    : '';
+
   return '<div class="plans-donut-wrap">'
-    + '<svg viewBox="0 0 124 124" style="width:124px; height:124px; flex-shrink:0;">'
-    + '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="var(--kpi-taux)" stroke-width="18" stroke-dasharray="'+segTermine.toFixed(1)+' '+(circ-segTermine).toFixed(1)+'" stroke-dashoffset="'+offTermine.toFixed(1)+'"/>'
-    + '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="var(--kpi-rest)" stroke-width="18" stroke-dasharray="'+segEnCours.toFixed(1)+' '+(circ-segEnCours).toFixed(1)+'" stroke-dashoffset="'+offEnCours.toFixed(1)+'"/>'
-    + '<circle cx="'+cx+'" cy="'+cy+'" r="'+r+'" fill="none" stroke="var(--kpi-pages)" stroke-width="18" stroke-dasharray="'+segNonCommence.toFixed(1)+' '+(circ-segNonCommence).toFixed(1)+'" stroke-dashoffset="'+offNonCommence.toFixed(1)+'"/>'
-    + '</svg>'
-    + '<div class="plans-donut-legend">'
-    + '<div><span class="dot" style="background:var(--kpi-taux)"></span>Terminés : <strong>'+termines+'/'+total+'</strong></div>'
-    + '<div><span class="dot" style="background:var(--kpi-rest)"></span>En cours : <strong>'+enCours+'/'+total+'</strong></div>'
-    + '<div><span class="dot" style="background:var(--kpi-pages)"></span>Non commencés : <strong>'+nonCommences+'/'+total+'</strong></div>'
-    + '</div></div>';
+    + '<svg viewBox="0 0 128 128" style="width:128px; height:128px; flex-shrink:0;">'+slices+'</svg>'
+    + '<div class="plans-donut-legend">'+legend+'</div>'
+    + '</div>'
+    + repeatsHtml;
 }
 
 function renderRapportPreview(){
@@ -1494,19 +1541,8 @@ function renderRapportPreview(){
   const taux = ((lus/TOTAL_CHAPTERS)*100).toFixed(2);
   const pos = currentPosition();
   const posTxt = pos ? (pos.livre + " (" + pos.lu + "/" + pos.total + " chapitres)") : "Plan terminé 🎉";
-
-  const chapEntries = state.chapterLog.slice().sort((a,b)=> b.date.localeCompare(a.date)).map(e=>{
-    const label = e.de===e.a ? ("chapitre "+e.de) : ("chapitres "+e.de+" à "+e.a);
-    return "<li>" + fmtDate(parseDate(e.date)) + " · <strong>" + e.livre + "</strong> — " + label + "</li>";
-  }).join('') || "<li class='empty'>Aucune lecture enregistrée.</li>";
-
-  const compEntries = state.compLog.map(e=>
-    "<li>" + fmtDate(parseDate(e.date)) + " · <strong>" + e.livre + " " + e.chapitre + (e.verset ? ':'+e.verset : '') + "</strong><br>" + e.note + "</li>"
-  ).join('') || "<li class='empty'>Aucune entrée.</li>";
-
-  const prayerEntries = state.prayers.map(e=>
-    "<li>" + fmtDate(parseDate(e.date)) + (e.reference ? ' · '+e.reference : '') + (e.verse ? ' · verset '+e.verse : '') + "<br>" + e.text + "</li>"
-  ).join('') || "<li class='empty'>Aucune prière.</li>";
+  const totalPages = Math.round((lus/TOTAL_CHAPTERS)*1200);
+  const livresLus = planOrder.filter(b=> chaptersReadCount(b) >= chapters[b]).length;
 
   const plansProgress = THEMATIC_PLANS.map(plan=>{
     const done = (state.thematicProgress && state.thematicProgress[plan.id]) || [];
@@ -1515,42 +1551,30 @@ function renderRapportPreview(){
     const pct = Math.round((nbDone/total)*100);
     return { titre: plan.titre, nbDone, total, pct };
   });
-  const plansTermines = plansProgress.filter(p=>p.pct===100).length;
-  const plansEntries = plansProgress.map(p=>
-    "<li><strong>" + p.titre + "</strong> — " + p.nbDone + "/" + p.total + " jours (" + p.pct + "%)" + (p.pct===100 ? " ✅" : "") + "</li>"
-  ).join('');
 
-  const timeline = computeReadingTimeline();
-  const pagesChart = renderTimelineChart(timeline, 'pages', 'var(--olive)', 'pages');
-  const chaptersTimelineChart = renderTimelineChart(timeline, 'chapitres', 'var(--gold)', 'chapitres');
   const booksBarChart = renderBooksBarChart();
-  const plansDonut = renderPlansDonut(plansProgress);
+  const plansPie = renderPlansPie(plansProgress);
 
   el.innerHTML = `
     <div class="card">
       <h2>Résumé de progression</h2>
-      <div class="detail" style="margin-top:0;">Taux : <strong>${taux}%</strong> (${lus} / ${TOTAL_CHAPTERS} chapitres) · Position actuelle : <strong>${posTxt}</strong></div>
+      <div class="detail" style="margin-top:0;">Taux : <strong>${taux}%</strong> · Position actuelle : <strong>${posTxt}</strong></div>
     </div>
     <div class="card">
-      <h2>📈 Volume lu (pages)</h2>
-      <div class="subnote">Estimation sur 1200 pages pour l'ensemble de la Bible, cumulée au fil de tes lectures enregistrées.</div>
-      ${pagesChart}
-    </div>
-    <div class="card">
-      <h2>📊 Chapitres lus (dans le temps)</h2>
-      ${chaptersTimelineChart}
+      <h2>📊 En chiffres</h2>
+      <div class="stats-grid">
+        <div class="stat-tile"><div class="stat-tile-value">${lus}</div><div class="stat-tile-label">Chapitres lus au total</div></div>
+        <div class="stat-tile"><div class="stat-tile-value">${totalPages}</div><div class="stat-tile-label">Pages lues au total (est.)</div></div>
+        <div class="stat-tile"><div class="stat-tile-value">${livresLus}/66</div><div class="stat-tile-label">Livres terminés</div></div>
+      </div>
     </div>
     <div class="card">
       <h2>📚 Chapitres lus par livre</h2>
       ${booksBarChart}
     </div>
-    <div class="card"><h2>📘 Journal des chapitres</h2><ul style="padding-left:18px; margin:0;">${chapEntries}</ul></div>
-    <div class="card"><h2>📖 Journal de compréhension</h2><ul style="padding-left:18px; margin:0;">${compEntries}</ul></div>
-    <div class="card"><h2>🙏 Prières</h2><ul style="padding-left:18px; margin:0;">${prayerEntries}</ul></div>
     <div class="card">
       <h2>🕊️ Plans thématiques</h2>
-      ${plansDonut}
-      <ul style="padding-left:18px; margin-top:12px;">${plansEntries}</ul>
+      ${plansPie}
     </div>
   `;
 }
@@ -1563,7 +1587,7 @@ function printReport(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=5').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=6').catch(()=>{});
   });
 }
 

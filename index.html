@@ -87,6 +87,11 @@
     <div id="videoOfDay"></div>
   </div>
 
+  <div class="card" id="musicCard" style="display:none;">
+    <h2>🎵 Musique du jour</h2>
+    <div id="musicOfDay"></div>
+  </div>
+
 </section>
 
 <!-- PLANS THÉMATIQUES -->
@@ -212,7 +217,12 @@
 
   <div class="card">
     <h2>🎥 Message / prédication du jour</h2>
-    <div class="subnote">Tes liens YouTube favoris se gèrent directement dans le fichier <code>video-config.js</code> sur GitHub (pas ici, pour ne pas encombrer l'appli). Une vidéo différente s'affiche automatiquement chaque jour sur la page d'Accueil.</div>
+    <div class="subnote">Tes liens YouTube favoris (vidéos classiques ou Shorts, les deux marchent) se gèrent directement dans le fichier <code>video-config.js</code> sur GitHub (pas ici, pour ne pas encombrer l'appli). Un message différent s'affiche automatiquement chaque jour sur la page d'Accueil.</div>
+  </div>
+
+  <div class="card">
+    <h2>🎵 Musique du jour</h2>
+    <div class="subnote">Ça se règle dans le fichier <code>music-config.js</code> sur GitHub, avec deux options : soit coller le lien de partage d'une de tes playlists Spotify (n'importe qui peut alors l'écouter directement dans l'appli, sans compte), soit une liste de liens YouTube dont un titre différent s'affiche chaque jour. La carte s'affiche à côté du message du jour, et reste masquée tant que rien n'est configuré.</div>
   </div>
 </section>
 
@@ -251,6 +261,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="video-config.js"></script>
+<script src="music-config.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
