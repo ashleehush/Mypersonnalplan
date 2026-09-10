@@ -430,7 +430,60 @@ function renderMusicOfDay(){
   const start = new Date(new Date().getFullYear(), 0, 0);
   const dayOfYear = Math.floor((new Date() - start) / 86400000);
   const id = ids[(dayOfYear + 17) % ids.length];
-  box.innerHTML = '<div class="video-wrap"><iframe src="https://www.youtube.com/embed/'+id+'" title="Louange & adoration" allow="accelerometer; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>';
+
+  // Juste un petit lecteur audio (bouton lecture/pause), pas la vidéo :
+  // la vidéo YouTube tourne bien, mais réduite à 1x1 et cachée — seul le
+  // son en sort. Le bouton pilote cette vidéo cachée via l'API YouTube.
+  box.innerHTML = '<div class="audio-player">'
+    + '<button id="audioPlayBtn" class="audio-play-btn" onclick="toggleMusicPlayback()">▶</button>'
+    + '<div class="audio-info">Chant en fond</div>'
+    + '<div style="width:0; height:0; overflow:hidden;"><div id="ytAudioMount"></div></div>'
+    + '</div>';
+  createYtAudioPlayer(id);
+}
+/* =========================================================================
+   LECTEUR AUDIO CACHÉ POUR "LOUANGE & ADORATION" — utilise l'API YouTube
+   (chargée en fin de page) pour piloter une vidéo réduite à 1x1 px, sans
+   jamais afficher l'image : seuls le son et un simple bouton ▶/⏸ restent
+   visibles, comme un vrai lecteur audio.
+   ========================================================================= */
+let ytPlayer = null;
+let ytPendingVideoId = null;
+function loadYouTubeIframeAPIScript(){
+  if(document.getElementById('ytIframeApiScript')) return;
+  const tag = document.createElement('script');
+  tag.id = 'ytIframeApiScript';
+  tag.src = 'https://www.youtube.com/iframe_api';
+  document.head.appendChild(tag);
+}
+window.onYouTubeIframeAPIReady = function(){
+  if(ytPendingVideoId){ createYtAudioPlayer(ytPendingVideoId); ytPendingVideoId = null; }
+};
+function createYtAudioPlayer(videoId){
+  if(!window.YT || !window.YT.Player){
+    ytPendingVideoId = videoId;
+    loadYouTubeIframeAPIScript();
+    return;
+  }
+  if(ytPlayer){ try{ ytPlayer.destroy(); }catch(e){} ytPlayer = null; }
+  const mount = document.getElementById('ytAudioMount');
+  if(!mount) return;
+  ytPlayer = new YT.Player('ytAudioMount', {
+    videoId: videoId, width:'2', height:'2',
+    playerVars: { autoplay:0, controls:0, disablekb:1, fs:0, modestbranding:1 },
+    events: {
+      onStateChange: function(e){
+        const btn = document.getElementById('audioPlayBtn');
+        if(!btn) return;
+        btn.textContent = (e.data === YT.PlayerState.PLAYING) ? '⏸' : '▶';
+      }
+    }
+  });
+}
+function toggleMusicPlayback(){
+  if(!ytPlayer || typeof ytPlayer.getPlayerState !== 'function') return;
+  const s = ytPlayer.getPlayerState();
+  if(s === 1){ ytPlayer.pauseVideo(); } else { ytPlayer.playVideo(); }
 }
 /* Replie/déplie le lecteur "Louange & adoration" — repliée, la musique
    continue à jouer (on ne fait que la rétrécir visuellement à 0 avec
