@@ -684,7 +684,7 @@ const THEMATIC_PLANS = [
     { ref:"Ésaïe 58:6", texte:"Voici le jeûne auquel je prends plaisir : détache les chaînes de la méchanceté, dénoue les liens de la servitude, renvoie libres les opprimés, et que l'on rompe toute espèce de joug.", priere:"Seigneur, montre-moi le vrai sens de mon jeûne : que mon cœur se tourne vers ce qui te plaît." },
     { ref:"Matthieu 6:17-18", texte:"Mais quand tu jeûnes, parfume ta tête et lave ton visage, afin de ne pas montrer aux hommes que tu jeûnes, mais à ton Père qui est là dans le lieu secret ; et ton Père, qui voit dans le secret, te le rendra.", priere:"Père, que mon jeûne soit pour toi seul, dans le secret, sans chercher le regard des autres." },
     { ref:"Joël 2:12", texte:"Maintenant encore, dit l'Éternel, revenez à moi de tout votre cœur, avec des jeûnes, avec des pleurs et des lamentations !", priere:"Seigneur, je reviens à toi de tout mon cœur aujourd'hui." },
-    { ref:"Matthieu 4:4", texte:"Il répondit : Il est écrit : L'homme ne vivra pas de pain seulement, mais de toute parole qui sort de la bouche de Dieu.", priere:"Nourris-moi de ta Parole aujourd'hui plus que de tout le reste." },
+    { ref:"2 Chroniques 20:3", texte:"Dans sa frayeur, Josaphat se disposa à consulter l'Éternel, et il publia un jeûne pour tout Juda.", priere:"Comme Josaphat, je me tourne vers toi par le jeûne dans les moments où j'ai besoin de ta direction." },
     { ref:"Daniel 9:3", texte:"Je tournai ma face vers le Seigneur Dieu, afin de recourir à la prière et aux supplications, en jeûnant et en revêtant le sac et la cendre.", priere:"Seigneur, je tourne mon visage vers toi aujourd'hui, avec humilité." }
   ]},
   { id:'amour', titre:"L'amour de Dieu", jours:[
@@ -695,7 +695,7 @@ const THEMATIC_PLANS = [
     { ref:"Romains 8:38-39", texte:"Car j'ai l'assurance que ni la mort ni la vie, ni les anges ni les dominations, ni les choses présentes ni les choses à venir, ni les puissances, ni la hauteur, ni la profondeur, ni aucune autre créature ne pourra nous séparer de l'amour de Dieu manifesté en Jésus-Christ notre Seigneur.", priere:"Merci que rien ne puisse me séparer de ton amour, quoi qu'il arrive aujourd'hui." }
   ]},
   { id:'priere', titre:"La prière", jours:[
-    { ref:"Philippiens 4:6-7", texte:"Ne vous inquiétez de rien ; mais en toute chose faites connaître vos besoins à Dieu par des prières et des supplications, avec des actions de grâces. Et la paix de Dieu, qui surpasse toute intelligence, gardera vos cœurs et vos pensées en Jésus-Christ.", priere:"Seigneur, je te confie mes soucis aujourd'hui, un par un." },
+    { ref:"Marc 11:24", texte:"C'est pourquoi je vous dis : Tout ce que vous demanderez en priant, croyez que vous l'avez reçu, et vous le verrez s'accomplir.", priere:"Seigneur, augmente ma foi quand je te présente mes demandes aujourd'hui." },
     { ref:"Matthieu 6:6", texte:"Mais quand tu pries, entre dans ta chambre, ferme ta porte, et prie ton Père qui est là dans le lieu secret ; et ton Père, qui voit dans le secret, te le rendra.", priere:"Merci pour ce lieu secret où je peux te parler librement." },
     { ref:"Jacques 5:16", texte:"confessez vos péchés les uns aux autres, et priez les uns pour les autres, afin que vous soyez guéris. La prière fervente du juste a une grande efficace.", priere:"Apprends-moi à prier avec ferveur, pour moi et pour les autres." },
     { ref:"1 Thessaloniciens 5:17", texte:"Priez sans cesse.", priere:"Seigneur, aide-moi à garder un dialogue avec toi tout au long de cette journée." },
@@ -724,10 +724,10 @@ const THEMATIC_PLANS = [
   ]},
   { id:'reves', titre:"Les rêves et les visions", jours:[
     { ref:"Joël 2:28", texte:"Après cela, je répandrai mon esprit sur toute chair ; vos fils et vos filles prophétiseront, vos vieillards auront des songes, et vos jeunes gens des visions.", priere:"Seigneur, parle-moi, même dans mon sommeil, et donne-moi un cœur qui écoute." },
-    { ref:"Actes 2:17", texte:"Dans les derniers jours, dit Dieu, je répandrai de mon Esprit sur toute chair ; vos fils et vos filles prophétiseront, vos jeunes gens auront des visions, et vos vieillards auront des songes.", priere:"Merci pour ton Esprit répandu sur nous. Ouvre mes yeux sur ce que tu veux me montrer." },
+    { ref:"Genèse 37:5", texte:"Joseph eut un songe, et il le raconta à ses frères, qui le haïrent encore davantage.", priere:"Seigneur, aide-moi à garder précieusement ce que tu me montres, même quand ce n'est pas encore compris par tous." },
     { ref:"Genèse 28:12", texte:"Il eut un songe. Et voici, une échelle était appuyée sur la terre, et son sommet touchait au ciel. Et voici, les anges de Dieu montaient et descendaient par cette échelle.", priere:"Seigneur, rappelle-moi que le ciel est proche de moi, même quand je ne le vois pas." },
-    { ref:"Daniel 2:22", texte:"Il révèle ce qui est profond et caché, il sait ce qui est dans les ténèbres, et la lumière demeure avec lui.", priere:"Révèle-moi ce que j'ai besoin de comprendre aujourd'hui, Seigneur." },
-    { ref:"Psaume 127:2", texte:"En vain vous levez-vous matin, vous couchez-vous tard, et mangez-vous le pain de douleur ; il en donne autant à ses bien-aimés pendant leur sommeil.", priere:"Merci Seigneur de veiller sur moi même quand je dors. J'apprends à me reposer en toi." }
+    { ref:"Daniel 1:17", texte:"Dieu accorda à ces quatre jeunes gens de la science, de l'intelligence dans toutes les lettres et une sagesse ; et Daniel expliquait toutes les visions et tous les songes.", priere:"Donne-moi la sagesse de comprendre ce que tu veux me montrer, Seigneur." },
+    { ref:"Matthieu 1:20", texte:"Comme il y pensait, voici, un ange du Seigneur lui apparut en songe, et dit : Joseph, fils de David, ne crains pas de prendre avec toi Marie, ta femme, car l'enfant qu'elle a conçu vient du Saint-Esprit.", priere:"Seigneur, guide-moi comme tu as guidé Joseph, même dans mes moments de doute." }
   ]},
   { id:'forteresses', titre:"Fermer les forteresses démoniaques", jours:[
     { ref:"2 Corinthiens 10:4-5", texte:"car les armes avec lesquelles nous combattons ne sont pas charnelles ; mais elles sont puissantes, par la vertu de Dieu, pour renverser des forteresses. Nous renversons les raisonnements et toute hauteur qui s'élève contre la connaissance de Dieu, et nous amenons toute pensée captive à l'obéissance de Christ.", priere:"Seigneur, je remets mes pensées captives à ton obéissance aujourd'hui." },
@@ -748,7 +748,7 @@ const THEMATIC_PLANS = [
     { ref:"Deutéronome 6:6-7", texte:"Et ces commandements, que je te donne aujourd'hui, seront dans ton cœur. Tu les inculqueras à tes enfants, et tu en parleras quand tu seras dans ta maison, quand tu iras en voyage, quand tu te coucheras et quand tu te lèveras.", priere:"Aide-moi à transmettre ta Parole à mon enfant, dans les petits moments du quotidien." },
     { ref:"Éphésiens 6:4", texte:"Et vous, pères, n'irritez pas vos enfants, mais élevez-les en les corrigeant et en les instruisant selon le Seigneur.", priere:"Seigneur, donne-moi patience et douceur dans la façon dont je corrige et j'instruis." },
     { ref:"Proverbes 29:17", texte:"Chatie ton fils, et il te donnera du repos, et il procurera des délices à ton âme.", priere:"Merci pour la promesse de paix qui accompagne une bonne éducation. Aide-moi à persévérer." },
-    { ref:"Psaume 127:3", texte:"Voici, des fils sont un héritage de l'Éternel, le fruit des entrailles est une récompense.", priere:"Merci Seigneur pour mon enfant, cet héritage précieux que tu m'as confié." }
+    { ref:"Proverbes 13:24", texte:"Celui qui épargne la verge hait son fils, mais celui qui l'aime cherche à le corriger.", priere:"Donne-moi l'équilibre entre fermeté et amour dans l'éducation de mon enfant." }
   ]},
   { id:'guerison-coeur', titre:"La guérison du cœur (blessures intérieures)", jours:[
     { ref:"Psaume 147:3", texte:"Il guérit ceux qui ont le cœur brisé, et il panse leurs blessures.", priere:"Seigneur, viens panser ce qui est encore blessé en moi aujourd'hui." },
@@ -775,7 +775,7 @@ const THEMATIC_PLANS = [
     { ref:"Hébreux 13:4", texte:"Le mariage est honorable en tous, et le lit conjugal sans souillure, car Dieu jugera les impudiques et les adultères.", priere:"Seigneur, aide-moi à honorer ce que tu as institué comme saint." },
     { ref:"Cantique des Cantiques 8:6", texte:"Mets-moi comme un sceau sur ton cœur, comme un sceau sur ton bras ; car l'amour est fort comme la mort, la jalousie est inflexible comme le séjour des morts ; ses ardeurs sont des ardeurs de feu, une flamme de l'Éternel.", priere:"Merci pour la force et la beauté de l'amour que tu as créé." },
     { ref:"Genèse 2:24", texte:"C'est pourquoi l'homme quittera son père et sa mère, et s'attachera à sa femme, et ils deviendront une seule chair.", priere:"Seigneur, fortifie l'union et l'intimité dans mon couple." },
-    { ref:"1 Corinthiens 6:19-20", texte:"Ne savez-vous pas que votre corps est le temple du Saint-Esprit qui est en vous, que vous avez reçu de Dieu, et que vous ne vous appartenez point à vous-mêmes ? Car vous avez été rachetés à un grand prix. Glorifiez donc Dieu dans votre corps et dans votre esprit, qui appartiennent à Dieu.", priere:"Aide-moi à honorer mon corps comme ton temple." },
+    { ref:"1 Corinthiens 7:3", texte:"Que le mari rende à sa femme l'affection qui lui est due, et que la femme agisse de même envers son mari.", priere:"Seigneur, aide-nous à nous donner l'un à l'autre avec amour et attention." },
     { ref:"1 Thessaloniciens 4:3-4", texte:"Ce que Dieu veut, c'est votre sanctification ; c'est que vous vous absteniez de l'impudicité ; c'est que chacun de vous sache posséder son corps avec sainteté et honnêteté.", priere:"Seigneur, garde mon cœur et mon corps dans la sainteté que tu désires pour moi." }
   ]},
   { id:'famille', titre:"La famille", jours:[
@@ -790,7 +790,7 @@ const THEMATIC_PLANS = [
     { ref:"Proverbes 16:9", texte:"Le cœur de l'homme médite sa voie, mais c'est l'Éternel qui dirige ses pas.", priere:"Dirige mes pas, Seigneur, même quand je fais mes propres plans." },
     { ref:"Jacques 4:15", texte:"Vous devriez dire, au contraire : Si Dieu le veut, nous vivrons, et nous ferons ceci ou cela.", priere:"Que ta volonté guide mes projets, plus que mes envies." },
     { ref:"Psaume 20:4-5", texte:"Qu'il te donne ce que ton cœur désire, et qu'il accomplisse tous tes desseins !", priere:"Merci de t'intéresser à mes désirs. J'attends l'accomplissement de tes promesses." },
-    { ref:"Habacuc 2:3", texte:"Car c'est une prophétie dont le temps est déjà fixé, elle marche vers son terme, et elle ne mentira pas ; si elle tarde, attends-la, car elle s'accomplira, elle s'accomplira certainement.", priere:"Aide-moi à persévérer en attendant l'accomplissement de ce que tu as promis." }
+    { ref:"Proverbes 21:5", texte:"Les projets de l'homme diligent ne mènent qu'à l'abondance, mais celui qui agit avec précipitation n'arrive qu'à la disette.", priere:"Aide-moi à avancer dans mes projets avec constance, sans précipitation." }
   ]},
   { id:'finances', titre:"Les finances", jours:[
     { ref:"Malachie 3:10", texte:"Apportez à la maison du trésor toutes les dîmes, afin qu'il y ait de la nourriture dans ma maison ; mettez-moi de la sorte à l'épreuve, dit l'Éternel des armées. Et vous verrez si je n'ouvre pas pour vous les écluses des cieux, si je ne répands pas sur vous la bénédiction en abondance.", priere:"Seigneur, aide-moi à être fidèle dans ce que tu me confies." },
@@ -800,8 +800,8 @@ const THEMATIC_PLANS = [
     { ref:"Luc 6:38", texte:"Donnez, et il vous sera donné : on versera dans votre sein une bonne mesure, serrée, secouée et qui déborde ; car on vous mesurera avec la mesure dont vous vous serez servis.", priere:"Apprends-moi à donner avec un cœur généreux et confiant." }
   ]},
   { id:'plan-de-dieu', titre:"Le plan de Dieu", jours:[
-    { ref:"Jérémie 29:11", texte:"Car je connais les projets que j'ai formés sur vous, dit l'Éternel, projets de paix et non de malheur, afin de vous donner un avenir et de l'espérance.", priere:"Merci pour tes projets de paix sur ma vie. J'ai confiance en ton avenir pour moi." },
-    { ref:"Romains 8:28", texte:"Nous savons, du reste, que toutes choses concourent au bien de ceux qui aiment Dieu, de ceux qui sont appelés selon son dessein.", priere:"Aide-moi à croire que tout concourt à mon bien, même ce que je ne comprends pas encore." },
+    { ref:"Psaume 138:8", texte:"L'Éternel agira en ma faveur. Éternel, ta bonté dure toujours : n'abandonne pas les œuvres de tes mains.", priere:"Merci de ne pas abandonner ce que tu as commencé en moi." },
+    { ref:"Ésaïe 46:10", texte:"J'annonce dès le commencement ce qui doit arriver, et longtemps d'avance ce qui n'est pas encore accompli ; je dis : Mes arrêts subsisteront, et j'exécuterai toute ma volonté.", priere:"Merci que ton dessein s'accomplira, quoi qu'il arrive." },
     { ref:"Ésaïe 55:8-9", texte:"Car mes pensées ne sont pas vos pensées, et vos voies ne sont pas mes voies, dit l'Éternel. Autant les cieux sont élevés au-dessus de la terre, autant mes voies sont élevées au-dessus de vos voies, et mes pensées au-dessus de vos pensées.", priere:"Seigneur, aide-moi à faire confiance à tes voies même quand elles dépassent les miennes." },
     { ref:"Proverbes 19:21", texte:"Il y a dans le cœur de l'homme beaucoup de projets, mais c'est le dessein de l'Éternel qui s'accomplit.", priere:"Que ton dessein s'accomplisse dans ma vie, au-delà de mes propres plans." },
     { ref:"Éphésiens 2:10", texte:"Car nous sommes son ouvrage, ayant été créés en Jésus-Christ pour de bonnes œuvres, que Dieu a préparées d'avance, afin que nous les pratiquions.", priere:"Merci d'avoir préparé d'avance de bonnes œuvres pour moi. Montre-les-moi aujourd'hui." }
