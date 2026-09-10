@@ -524,6 +524,7 @@ function showPage(id){
     b.classList.toggle('active', b.dataset.page === id);
   });
   if(id === 'journal-comprehension' || id === 'prieres') refreshVerseSelects();
+  if(id === 'rapports') renderRapportPreview();
   closeMenu();
   window.scrollTo(0,0);
 }
@@ -536,7 +537,44 @@ function closeMenu(){
   document.getElementById('menuOverlay').classList.remove('show');
 }
 
+/* =========================================================================
+   RAPPORT — un résumé lisible, affiché directement dans l'appli (pas
+   seulement au moment d'imprimer), pour que ce soit concret à l'écran.
+   ========================================================================= */
+function renderRapportPreview(){
+  const el = document.getElementById('rapportPreview');
+  if(!el) return;
+  const lus = totalRead();
+  const taux = ((lus/TOTAL_CHAPTERS)*100).toFixed(2);
+  const pos = currentPosition();
+  const posTxt = pos ? (pos.livre + " (" + pos.lu + "/" + pos.total + " chapitres)") : "Plan terminé 🎉";
+
+  const chapEntries = state.chapterLog.slice().sort((a,b)=> b.date.localeCompare(a.date)).map(e=>{
+    const label = e.de===e.a ? ("chapitre "+e.de) : ("chapitres "+e.de+" à "+e.a);
+    return "<li>" + fmtDate(parseDate(e.date)) + " · <strong>" + e.livre + "</strong> — " + label + "</li>";
+  }).join('') || "<li class='empty'>Aucune lecture enregistrée.</li>";
+
+  const compEntries = state.compLog.map(e=>
+    "<li>" + fmtDate(parseDate(e.date)) + " · <strong>" + e.livre + " " + e.chapitre + (e.verset ? ':'+e.verset : '') + "</strong><br>" + e.note + "</li>"
+  ).join('') || "<li class='empty'>Aucune entrée.</li>";
+
+  const prayerEntries = state.prayers.map(e=>
+    "<li>" + fmtDate(parseDate(e.date)) + (e.reference ? ' · '+e.reference : '') + (e.verse ? ' · verset '+e.verse : '') + "<br>" + e.text + "</li>"
+  ).join('') || "<li class='empty'>Aucune prière.</li>";
+
+  el.innerHTML = `
+    <div class="card">
+      <h2>Résumé de progression</h2>
+      <div class="detail" style="margin-top:0;">Taux : <strong>${taux}%</strong> (${lus} / ${TOTAL_CHAPTERS} chapitres) · Position actuelle : <strong>${posTxt}</strong></div>
+    </div>
+    <div class="card"><h2>📘 Journal des chapitres</h2><ul style="padding-left:18px; margin:0;">${chapEntries}</ul></div>
+    <div class="card"><h2>📖 Journal de compréhension</h2><ul style="padding-left:18px; margin:0;">${compEntries}</ul></div>
+    <div class="card"><h2>🙏 Prières</h2><ul style="padding-left:18px; margin:0;">${prayerEntries}</ul></div>
+  `;
+}
+
 function printReport(){
+  renderRapportPreview();
   document.querySelectorAll('details').forEach(d=> d.open = true);
   window.print();
 }
