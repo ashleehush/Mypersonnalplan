@@ -406,7 +406,7 @@ function renderMusicOfDay(){
   if(spotifyId){
     if(card) card.style.display = '';
     box.innerHTML = '<div class="spotify-wrap"><iframe src="https://open.spotify.com/embed/playlist/'+spotifyId+'?utm_source=generator" '
-      + 'title="Musique du jour" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe></div>';
+      + 'title="Louange & adoration" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe></div>';
     return;
   }
 
@@ -422,7 +422,7 @@ function renderMusicOfDay(){
   const start = new Date(new Date().getFullYear(), 0, 0);
   const dayOfYear = Math.floor((new Date() - start) / 86400000);
   const id = ids[(dayOfYear + 17) % ids.length];
-  box.innerHTML = '<div class="video-wrap"><iframe src="https://www.youtube.com/embed/'+id+'" title="Musique du jour" allow="accelerometer; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>';
+  box.innerHTML = '<div class="video-wrap"><iframe src="https://www.youtube.com/embed/'+id+'" title="Louange & adoration" allow="accelerometer; encrypted-media; picture-in-picture" allowfullscreen loading="lazy"></iframe></div>';
 }
 
 /* =========================================================================
