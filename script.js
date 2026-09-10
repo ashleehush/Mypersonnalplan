@@ -38,6 +38,12 @@ allBooks.forEach(b=>{
   opt.value = b; opt.textContent = b;
   logLivreSelect.appendChild(opt);
 });
+function onLogLivreChange(){
+  const maxCh = chapters[logLivreSelect.value] || 1;
+  fillChapterSelect(document.getElementById('logDe'), maxCh);
+  fillChapterSelect(document.getElementById('logA'), maxCh);
+}
+onLogLivreChange();
 
 /* =========================================================================
    NOMBRE DE VERSETS PAR CHAPITRE — pour que le menu déroulant "verset" ne
@@ -244,7 +250,7 @@ function setBackground(v){
    du jour (donc "automatique" au sens où tu n'as plus rien à faire ensuite).
    ========================================================================= */
 function extractYouTubeId(url){
-  const m = String(url).match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{6,15})/);
+  const m = String(url).match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/))([A-Za-z0-9_-]{6,15})/);
   return m ? m[1] : null;
 }
 function getVideoIds(){

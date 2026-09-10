@@ -104,10 +104,10 @@
     <h2>📘 Journal des chapitres</h2>
     <div class="subnote">Une ligne par lecture. Pour rattraper plusieurs chapitres, mets "de" et "à" différents (ex: 1 à 5). Pour un seul chapitre, mets le même chiffre des deux côtés.</div>
     <label>Livre</label>
-    <select id="logLivre"></select>
+    <select id="logLivre" onchange="onLogLivreChange()"></select>
     <div class="row2">
-      <div><label>Chapitre de</label><input type="number" id="logDe" min="1" value="1"></div>
-      <div><label>Chapitre à</label><input type="number" id="logA" min="1" value="1"></div>
+      <div><label>Chapitre de</label><select id="logDe"></select></div>
+      <div><label>Chapitre à</label><select id="logA"></select></div>
     </div>
     <label>Date</label>
     <input type="date" id="logDate">
