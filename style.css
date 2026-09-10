@@ -60,7 +60,7 @@
     }
     h1{ font-size:1.3rem; padding:20px 10px; }
     .card{ padding:20px 26px; }
-    #page-accueil{ display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+    #page-accueil:not([hidden]){ display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
     #page-accueil .verse-card{ grid-column:1 / -1; }
     #page-accueil .card:has(#banner){ grid-column:1 / -1; }
     #page-accueil .card:has(#videoOfDay){ grid-column:1 / -1; }
