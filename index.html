@@ -82,7 +82,7 @@
     <div class="reminder" id="reminder" style="display:none;"></div>
   </div>
 
-  <div class="card">
+  <div class="card" id="videoCard" style="display:none;">
     <h2>🎥 Message du jour</h2>
     <div id="videoOfDay"></div>
   </div>
@@ -120,8 +120,12 @@
 <section id="page-journal-comprehension" class="page" hidden>
   <div class="card">
     <h2>📖 Journal de compréhension</h2>
-    <div class="subnote">Se remplit avec ta dernière lecture enregistrée ci-dessus.</div>
-    <label>Verset qui t'a marquée (optionnel)</label>
+    <div class="subnote">Choisis le livre, le chapitre, et le verset si tu veux préciser.</div>
+    <label>Livre</label>
+    <select id="compLivre" onchange="onCompLivreChange()"></select>
+    <label>Chapitre</label>
+    <select id="compChapitre" onchange="onCompChapitreChange()"></select>
+    <label>Verset (optionnel)</label>
     <select id="compVerset"></select>
     <label>Ce que j'ai compris</label>
     <textarea id="compNote" placeholder="Écris ce que tu retiens..."></textarea>
@@ -134,7 +138,11 @@
 <section id="page-prieres" class="page" hidden>
   <div class="card">
     <h2>🙏 Prières</h2>
-    <label>Verset qui m'a parlé</label>
+    <label>Livre</label>
+    <select id="prayerLivre" onchange="onPrayerLivreChange()"></select>
+    <label>Chapitre</label>
+    <select id="prayerChapitre" onchange="onPrayerChapitreChange()"></select>
+    <label>Verset (optionnel)</label>
     <select id="prayerVerse"></select>
     <label>Ma prière</label>
     <textarea id="prayerText" placeholder="Écris ta prière..."></textarea>

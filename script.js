@@ -130,15 +130,84 @@ function fillVerseSelect(select, max){
   }
   if(prev && Number(prev) <= max) select.value = prev;
 }
+function fillBookSelect(select){
+  if(!select) return;
+  const prev = select.value;
+  select.innerHTML = '';
+  allBooks.forEach(b=>{
+    const opt = document.createElement('option');
+    opt.value = b; opt.textContent = b;
+    select.appendChild(opt);
+  });
+  if(prev && allBooks.includes(prev)) select.value = prev;
+}
+function fillChapterSelect(select, maxCh){
+  if(!select) return;
+  const prev = select.value;
+  select.innerHTML = '';
+  for(let c=1; c<=maxCh; c++){
+    const opt = document.createElement('option');
+    opt.value = c; opt.textContent = 'Chapitre ' + c;
+    select.appendChild(opt);
+  }
+  if(prev && Number(prev) <= maxCh) select.value = prev;
+}
 
-/* Remet à jour les menus déroulants "verset" en fonction du livre et du
-   chapitre de la DERNIÈRE lecture enregistrée — donc plus jamais de saisie
-   manuelle, et jamais plus de versets proposés que le chapitre n'en a. */
+/* Livre / Chapitre / Verset : 3 menus déroulants liés, sur Journal de
+   compréhension ET Prières — plus de saisie manuelle nulle part, et le
+   menu "verset" ne propose jamais plus de versets que le chapitre choisi
+   n'en a réellement. */
+function onCompLivreChange(){
+  const livre = document.getElementById('compLivre').value;
+  fillChapterSelect(document.getElementById('compChapitre'), chapters[livre] || 1);
+  onCompChapitreChange();
+}
+function onCompChapitreChange(){
+  const livre = document.getElementById('compLivre').value;
+  const chap = parseInt(document.getElementById('compChapitre').value) || 1;
+  fillVerseSelect(document.getElementById('compVerset'), maxVersetPour(livre, chap));
+}
+function onPrayerLivreChange(){
+  const livre = document.getElementById('prayerLivre').value;
+  fillChapterSelect(document.getElementById('prayerChapitre'), chapters[livre] || 1);
+  onPrayerChapitreChange();
+}
+function onPrayerChapitreChange(){
+  const livre = document.getElementById('prayerLivre').value;
+  const chap = parseInt(document.getElementById('prayerChapitre').value) || 1;
+  fillVerseSelect(document.getElementById('prayerVerse'), maxVersetPour(livre, chap));
+}
+
+/* Remplit les menus déroulants Livre/Chapitre/Verset la première fois
+   (une seule fois — on ne réinitialise jamais un choix déjà fait), avec
+   comme valeur de départ le livre/chapitre de la DERNIÈRE lecture
+   enregistrée, pour te faire gagner du temps. */
 function refreshVerseSelects(){
   const last = lastLogEntry();
-  const max = last ? maxVersetPour(last.livre, last.a) : 60;
-  fillVerseSelect(document.getElementById('compVerset'), max);
-  fillVerseSelect(document.getElementById('prayerVerse'), max);
+  const defaultLivre = last ? last.livre : allBooks[0];
+  const defaultChap = last ? last.a : 1;
+
+  const compLivreSel = document.getElementById('compLivre');
+  const compChapSel = document.getElementById('compChapitre');
+  const compVerseSel = document.getElementById('compVerset');
+  if(compLivreSel && compChapSel && compVerseSel && !compLivreSel.options.length){
+    fillBookSelect(compLivreSel);
+    compLivreSel.value = defaultLivre;
+    fillChapterSelect(compChapSel, chapters[compLivreSel.value] || 1);
+    compChapSel.value = Math.min(defaultChap, chapters[compLivreSel.value] || 1);
+    fillVerseSelect(compVerseSel, maxVersetPour(compLivreSel.value, parseInt(compChapSel.value)||1));
+  }
+
+  const prayerLivreSel = document.getElementById('prayerLivre');
+  const prayerChapSel = document.getElementById('prayerChapitre');
+  const prayerVerseSel = document.getElementById('prayerVerse');
+  if(prayerLivreSel && prayerChapSel && prayerVerseSel && !prayerLivreSel.options.length){
+    fillBookSelect(prayerLivreSel);
+    prayerLivreSel.value = defaultLivre;
+    fillChapterSelect(prayerChapSel, chapters[prayerLivreSel.value] || 1);
+    prayerChapSel.value = Math.min(defaultChap, chapters[prayerLivreSel.value] || 1);
+    fillVerseSelect(prayerVerseSel, maxVersetPour(prayerLivreSel.value, parseInt(prayerChapSel.value)||1));
+  }
 }
 
 let state = { dateDebut: new Date().toISOString().slice(0,10), chapterLog: [], compLog: [], prayers: [], settings: { palette:'dore', bg:'dore' } };
@@ -187,12 +256,17 @@ function getVideoIds(){
 }
 function renderVideoOfDay(){
   const box = document.getElementById('videoOfDay');
+  const card = document.getElementById('videoCard');
   if(!box) return;
   const ids = getVideoIds();
   if(!ids.length){
-    box.innerHTML = '<div class="empty">Ajoute tes liens YouTube favoris dans le fichier video-config.js sur GitHub : une vidéo différente s\'affichera ici chaque jour, automatiquement.</div>';
+    // Rien de configuré dans video-config.js : toute la carte (titre compris)
+    // reste masquée, plutôt que d'afficher un message vide en permanence.
+    if(card) card.style.display = 'none';
+    box.innerHTML = '';
     return;
   }
+  if(card) card.style.display = '';
   const start = new Date(new Date().getFullYear(), 0, 0);
   const dayOfYear = Math.floor((new Date() - start) / 86400000);
   const id = ids[dayOfYear % ids.length];
@@ -563,16 +637,13 @@ function lastLogEntry(){
   return state.chapterLog[state.chapterLog.length-1];
 }
 function addComp(){
-  const last = lastLogEntry();
-  if(!last){ alert("Ajoute d'abord une lecture dans le Journal des chapitres."); return; }
+  const livre = document.getElementById('compLivre').value;
+  const chapitre = parseInt(document.getElementById('compChapitre').value) || 1;
+  const verset = document.getElementById('compVerset').value;
   const note = document.getElementById('compNote').value.trim();
   if(!note) return;
-  state.compLog.unshift({
-    date: last.date, livre: last.livre, chapitre: last.a,
-    verset: document.getElementById('compVerset').value.trim(), note
-  });
+  state.compLog.unshift({ date: todayStr(), livre, chapitre, verset, note });
   document.getElementById('compNote').value = '';
-  document.getElementById('compVerset').value = '';
   persist(); renderComp();
 }
 function delComp(i){
@@ -590,16 +661,12 @@ function renderComp(){
 }
 
 function addPrayer(){
-  const last = lastLogEntry();
-  const verse = document.getElementById('prayerVerse').value.trim();
+  const livre = document.getElementById('prayerLivre').value;
+  const chapitre = parseInt(document.getElementById('prayerChapitre').value) || 1;
+  const verse = document.getElementById('prayerVerse').value;
   const text = document.getElementById('prayerText').value.trim();
   if(!text) return;
-  state.prayers.unshift({
-    date: last ? last.date : todayStr(),
-    reference: last ? (last.livre+" "+last.a) : "",
-    verse, text
-  });
-  document.getElementById('prayerVerse').value = '';
+  state.prayers.unshift({ date: todayStr(), reference: livre + " " + chapitre, verse, text });
   document.getElementById('prayerText').value = '';
   persist(); renderPrayers();
 }
