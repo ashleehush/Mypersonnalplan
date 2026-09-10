@@ -39,18 +39,106 @@ allBooks.forEach(b=>{
   logLivreSelect.appendChild(opt);
 });
 
-/* Menu déroulant de numéros de verset (1 à 180, couvre le plus long chapitre
-   de la Bible — Psaume 119, 176 versets) : plus de saisie manuelle. */
-const compVersetSelect = document.getElementById('compVerset');
-if(compVersetSelect){
+/* =========================================================================
+   NOMBRE DE VERSETS PAR CHAPITRE — pour que le menu déroulant "verset" ne
+   propose jamais plus de versets que le chapitre concerné n'en contient.
+   Chiffres exacts (vérifiés) pour les livres ci-dessous ; pour les autres
+   (les plus longs livres), un plafond généreux par livre — jamais inférieur
+   au vrai nombre, au pire un peu large sur de rares chapitres.
+   ========================================================================= */
+const versesPerChapter = {
+  "Ruth":[22,23,18,22],
+  "Esdras":[11,70,13,24,17,22,28,36,15,44],
+  "Néhémie":[11,20,32,23,19,19,73,18,38,39,36,47,31],
+  "Esther":[22,23,15,17,14,14,10,17,32,3],
+  "Ecclésiaste":[18,26,22,16,20,12,29,17,18,20,10,14],
+  "Cantique des Cantiques":[17,17,11,16,16,13,13,14],
+  "Lamentations":[22,22,66,22,22],
+  "Daniel":[21,49,30,37,31,28,28,27,27,21,45,13],
+  "Osée":[11,23,5,19,15,11,16,14,17,15,12,14,16,9],
+  "Joël":[20,32,21],
+  "Amos":[15,16,15,13,27,14,17,14,15],
+  "Abdias":[21],
+  "Jonas":[17,10,10,11],
+  "Michée":[16,13,12,13,15,16,20],
+  "Nahum":[15,13,19],
+  "Habacuc":[17,20,19],
+  "Sophonie":[18,15,20],
+  "Aggée":[15,23],
+  "Zacharie":[21,13,10,14,11,15,14,23,17,12,17,14,9,21],
+  "Malachie":[14,17,18,6],
+  "Josué":[18,24,17,24,15,27,26,35,27,43,23,24,33,15,63,10,18,28,51,9,45,34,16,33],
+  "Juges":[36,23,31,24,31,40,25,35,57,18,40,15,25,20,20,31,13,31,30,48,25],
+  "Galates":[24,21,29,31,26,18],
+  "Éphésiens":[23,22,21,32,33,24],
+  "Philippiens":[30,30,21,23],
+  "Colossiens":[29,23,25,18],
+  "1 Thessaloniciens":[10,20,13,18,28],
+  "2 Thessaloniciens":[12,17,18],
+  "1 Timothée":[20,15,16,16,25,21],
+  "2 Timothée":[18,26,17,22],
+  "Tite":[16,15,15],
+  "Philémon":[25],
+  "Jacques":[27,26,18,17,20],
+  "1 Pierre":[25,25,22,19,14],
+  "2 Pierre":[21,22,18],
+  "1 Jean":[10,29,24,21,21],
+  "2 Jean":[13],
+  "3 Jean":[14],
+  "Jude":[25],
+  "Romains":[32,29,31,25,21,23,25,39,33,21,36,21,14,23,33,27],
+  "2 Corinthiens":[24,17,18,18,21,18,16,24,15,18,33,21,14],
+  "Hébreux":[14,18,19,16,14,20,28,13,28,39,40,29,25],
+  "1 Corinthiens":[31,16,23,21,13,20,40,13,27,33,34,31,13,40,58,24],
+  "Apocalypse":[20,29,22,11,14,17,17,13,21,11,19,17,18,20,8,21,18,24,21,15,27,21],
+  "Psaumes":[6,12,8,8,12,10,17,9,20,18,7,8,6,7,5,11,15,50,14,9,13,31,6,10,22,12,14,9,11,12,24,11,22,22,28,12,40,22,13,17,13,11,5,26,17,11,9,14,20,23,19,9,6]
+};
+// Plafond par livre pour les livres dont je n'ai pas encore le détail exact
+// chapitre par chapitre — volontairement large pour ne jamais couper un
+// vrai verset.
+const versesBookCap = {
+  "Genèse":40,"Exode":40,"Lévitique":60,"Nombres":90,"Deutéronome":40,
+  "1 Samuel":60,"2 Samuel":45,"1 Rois":70,"2 Rois":40,"1 Chroniques":55,"2 Chroniques":40,
+  "Job":45,"Proverbes":35,"Ésaïe":35,"Jérémie":45,"Ézéchiel":50,
+  "Matthieu":60,"Marc":60,"Luc":80,"Jean":75,"Actes":60
+};
+const PSAUME_119_CAP = 176; // le plus long chapitre de toute la Bible
+
+function maxVersetPour(livre, chapitre){
+  if(livre === "Psaumes"){
+    const arr = versesPerChapter["Psaumes"];
+    if(chapitre>=1 && chapitre<=arr.length) return arr[chapitre-1];
+    return PSAUME_119_CAP;
+  }
+  const arr = versesPerChapter[livre];
+  if(arr && arr[chapitre-1]) return arr[chapitre-1];
+  if(versesBookCap[livre]) return versesBookCap[livre];
+  return 60; // filet de sécurité pour un cas non couvert
+}
+
+function fillVerseSelect(select, max){
+  if(!select) return;
+  const prev = select.value;
+  select.innerHTML = '';
   const empty = document.createElement('option');
   empty.value = ''; empty.textContent = '— (aucun) —';
-  compVersetSelect.appendChild(empty);
-  for(let v=1; v<=180; v++){
+  select.appendChild(empty);
+  for(let v=1; v<=max; v++){
     const opt = document.createElement('option');
     opt.value = v; opt.textContent = 'Verset ' + v;
-    compVersetSelect.appendChild(opt);
+    select.appendChild(opt);
   }
+  if(prev && Number(prev) <= max) select.value = prev;
+}
+
+/* Remet à jour les menus déroulants "verset" en fonction du livre et du
+   chapitre de la DERNIÈRE lecture enregistrée — donc plus jamais de saisie
+   manuelle, et jamais plus de versets proposés que le chapitre n'en a. */
+function refreshVerseSelects(){
+  const last = lastLogEntry();
+  const max = last ? maxVersetPour(last.livre, last.a) : 60;
+  fillVerseSelect(document.getElementById('compVerset'), max);
+  fillVerseSelect(document.getElementById('prayerVerse'), max);
 }
 
 let state = { dateDebut: new Date().toISOString().slice(0,10), chapterLog: [], compLog: [], prayers: [] };
@@ -92,7 +180,7 @@ function initCloudIfConfigured(){
             suppressNextWrite = true;
             state = Object.assign({dateDebut: todayStr(), chapterLog:[], compLog:[], prayers:[]}, snap.data());
             document.getElementById('dateDebut').value = state.dateDebut;
-            renderLog(); renderComp(); renderPrayers(); compute();
+            renderLog(); renderComp(); renderPrayers(); compute(); refreshVerseSelects();
           } else {
             // premier lancement pour ce compte : on crée le document
             cloudDocRef.set(state);
@@ -144,7 +232,7 @@ async function loadState(){
     }catch(e){}
     document.getElementById('dateDebut').value = state.dateDebut;
     document.getElementById('logDate').value = todayStr();
-    renderLog(); renderComp(); renderPrayers(); compute();
+    renderLog(); renderComp(); renderPrayers(); compute(); refreshVerseSelects();
   } else {
     document.getElementById('logDate').value = todayStr();
   }
@@ -308,7 +396,7 @@ function addLog(){
     return;
   }
   state.chapterLog.push({ date, livre, de, a });
-  persist(); renderLog(); compute();
+  persist(); renderLog(); compute(); refreshVerseSelects();
 }
 function delLog(i){
   if(!confirm("Supprimer cette lecture du journal ?")) return;
@@ -435,6 +523,7 @@ function showPage(id){
   document.querySelectorAll('.side-menu button').forEach(b=>{
     b.classList.toggle('active', b.dataset.page === id);
   });
+  if(id === 'journal-comprehension' || id === 'prieres') refreshVerseSelects();
   closeMenu();
   window.scrollTo(0,0);
 }
