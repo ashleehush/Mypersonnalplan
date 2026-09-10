@@ -34,22 +34,15 @@ const allBooks = planOrder;
    (ordre canonique) — utilisés uniquement pour construire les liens vers
    la version anglaise Amplified (voir verseVersionLinks). */
 const CANONICAL_BOOK_ORDER = Object.keys(chapters);
-const BOOK_NAME_EN = {
-  "Genèse":"Genesis","Exode":"Exodus","Lévitique":"Leviticus","Nombres":"Numbers","Deutéronome":"Deuteronomy",
-  "Josué":"Joshua","Juges":"Judges","Ruth":"Ruth","1 Samuel":"1 Samuel","2 Samuel":"2 Samuel",
-  "1 Rois":"1 Kings","2 Rois":"2 Kings","1 Chroniques":"1 Chronicles","2 Chroniques":"2 Chronicles",
-  "Esdras":"Ezra","Néhémie":"Nehemiah","Esther":"Esther","Job":"Job","Psaumes":"Psalm","Proverbes":"Proverbs",
-  "Ecclésiaste":"Ecclesiastes","Cantique des Cantiques":"Song of Solomon","Ésaïe":"Isaiah","Jérémie":"Jeremiah",
-  "Lamentations":"Lamentations","Ézéchiel":"Ezekiel","Daniel":"Daniel","Osée":"Hosea","Joël":"Joel","Amos":"Amos",
-  "Abdias":"Obadiah","Jonas":"Jonah","Michée":"Micah","Nahum":"Nahum","Habacuc":"Habakkuk","Sophonie":"Zephaniah",
-  "Aggée":"Haggai","Zacharie":"Zechariah","Malachie":"Malachi","Matthieu":"Matthew","Marc":"Mark","Luc":"Luke",
-  "Jean":"John","Actes":"Acts","Romains":"Romans","1 Corinthiens":"1 Corinthians","2 Corinthiens":"2 Corinthians",
-  "Galates":"Galatians","Éphésiens":"Ephesians","Philippiens":"Philippians","Colossiens":"Colossians",
-  "1 Thessaloniciens":"1 Thessalonians","2 Thessaloniciens":"2 Thessalonians","1 Timothée":"1 Timothy",
-  "2 Timothée":"2 Timothy","Tite":"Titus","Philémon":"Philemon","Hébreux":"Hebrews","Jacques":"James",
-  "1 Pierre":"1 Peter","2 Pierre":"2 Peter","1 Jean":"1 John","2 Jean":"2 John","3 Jean":"3 John",
-  "Jude":"Jude","Apocalypse":"Revelation"
-};
+/* Codes des 66 livres sur bible.com (l'appli/site YouVersion), dans le
+   même ordre que CANONICAL_BOOK_ORDER — norme standard utilisée par la
+   plupart des sites bibliques. */
+const BOOK_CODE_BIBLECOM = [
+  "GEN","EXO","LEV","NUM","DEU","JOS","JDG","RUT","1SA","2SA","1KI","2KI","1CH","2CH","EZR","NEH","EST","JOB",
+  "PSA","PRO","ECC","SNG","ISA","JER","LAM","EZK","DAN","HOS","JOL","AMO","OBA","JON","MIC","NAM","HAB","ZEP",
+  "HAG","ZEC","MAL","MAT","MRK","LUK","JHN","ACT","ROM","1CO","2CO","GAL","EPH","PHP","COL","1TH","2TH","1TI",
+  "2TI","TIT","PHM","HEB","JAS","1PE","2PE","1JN","2JN","3JN","JUD","REV"
+];
 /* Découpe une référence du type "Josué 1:8" ou "Matthieu 6:17-18" en
    {livre, chapitre, verset} (le premier verset d'un intervalle). */
 function parseRef(ref){
@@ -57,27 +50,29 @@ function parseRef(ref){
   if(!m) return null;
   return { livre: m[1].trim(), chapitre: parseInt(m[2],10), verset: parseInt(m[3],10) };
 }
-/* Construit des liens de lecture pour d'autres versions de la Bible.
-   Louis Segond 1910 reste affiché directement dans l'appli (texte inclus,
-   domaine public). Les autres versions (Segond 21, Semeur, Parole de Vie,
-   Darby, Amplified) sont sous droits ou hébergées ailleurs : on ne peut
-   pas en recopier le texte dans l'appli, donc on ouvre le bon verset sur
-   un site de lecture biblique fiable, dans un nouvel onglet. */
+/* Construit des liens de lecture pour d'autres versions de la Bible, tous
+   vers le même site (bible.com — l'appli "YouVersion", la plus connue et
+   la plus simple). Louis Segond 1910 reste affiché directement dans
+   l'appli (texte inclus, domaine public). Les autres versions (Segond 21,
+   Semeur, Parole de Vie, Darby, Amplified) sont protégées par des droits
+   d'auteur : impossible d'en recopier le texte ici sans l'accord de
+   l'éditeur, donc on ouvre le bon verset, déjà sélectionné, directement
+   sur bible.com dans un nouvel onglet — un seul site pour les 5 versions. */
 function verseVersionLinks(ref){
   const p = parseRef(ref);
   if(!p) return [];
-  const bookNum = CANONICAL_BOOK_ORDER.indexOf(p.livre) + 1;
-  const enBook = BOOK_NAME_EN[p.livre] || p.livre;
-  const refFr = encodeURIComponent(p.livre + ' ' + p.chapitre + ':' + p.verset);
-  const refEn = encodeURIComponent(enBook + ' ' + p.chapitre + ':' + p.verset);
+  const idx = CANONICAL_BOOK_ORDER.indexOf(p.livre);
+  const bookCode = idx >= 0 ? BOOK_CODE_BIBLECOM[idx] : null;
+  if(!bookCode) return [];
+  const loc = bookCode + '.' + p.chapitre + '.' + p.verset;
   const links = [
-    { label:'Segond 21', url:'https://www.biblegateway.com/passage/?search='+refFr+'&version=SG21' },
-    { label:'Semeur', url:'https://www.biblegateway.com/passage/?search='+refFr+'&version=BDS' },
-    { label:'Parole de Vie', url: bookNum>0 ? ('https://www.bible.audio/bible-PDV-'+bookNum+'-'+p.chapitre+'-'+p.verset+'-complet-contexte-oui.htm') : null },
-    { label:'Darby', url: bookNum>0 ? ('https://www.bible.audio/bible-DBY-'+bookNum+'-'+p.chapitre+'-'+p.verset+'-complet-contexte-oui.htm') : null },
-    { label:'Amplified (EN)', url:'https://www.biblegateway.com/passage/?search='+refEn+'&version=AMP' }
+    { label:'Segond 21', url:'https://www.bible.com/bible/152/'+loc+'.S21' },
+    { label:'Semeur', url:'https://www.bible.com/bible/21/'+loc+'.BDS' },
+    { label:'Parole de Vie', url:'https://www.bible.com/bible/133/'+loc+'.PDV2017' },
+    { label:'Darby', url:'https://www.bible.com/bible/64/'+loc+'.JND' },
+    { label:'Amplified (EN)', url:'https://www.bible.com/bible/1588/'+loc+'.AMP' }
   ];
-  return links.filter(l=>l.url);
+  return links;
 }
 const TOTAL_CHAPTERS = Object.values(chapters).reduce((a,b)=>a+b,0); // 1189
 const PLAN_DAYS = 66*30; // 1980
