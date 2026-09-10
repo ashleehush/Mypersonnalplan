@@ -29,6 +29,56 @@ const chapters = {
 };
 
 const allBooks = planOrder;
+
+/* Noms anglais des 66 livres, dans le même ordre que l'objet `chapters`
+   (ordre canonique) — utilisés uniquement pour construire les liens vers
+   la version anglaise Amplified (voir verseVersionLinks). */
+const CANONICAL_BOOK_ORDER = Object.keys(chapters);
+const BOOK_NAME_EN = {
+  "Genèse":"Genesis","Exode":"Exodus","Lévitique":"Leviticus","Nombres":"Numbers","Deutéronome":"Deuteronomy",
+  "Josué":"Joshua","Juges":"Judges","Ruth":"Ruth","1 Samuel":"1 Samuel","2 Samuel":"2 Samuel",
+  "1 Rois":"1 Kings","2 Rois":"2 Kings","1 Chroniques":"1 Chronicles","2 Chroniques":"2 Chronicles",
+  "Esdras":"Ezra","Néhémie":"Nehemiah","Esther":"Esther","Job":"Job","Psaumes":"Psalm","Proverbes":"Proverbs",
+  "Ecclésiaste":"Ecclesiastes","Cantique des Cantiques":"Song of Solomon","Ésaïe":"Isaiah","Jérémie":"Jeremiah",
+  "Lamentations":"Lamentations","Ézéchiel":"Ezekiel","Daniel":"Daniel","Osée":"Hosea","Joël":"Joel","Amos":"Amos",
+  "Abdias":"Obadiah","Jonas":"Jonah","Michée":"Micah","Nahum":"Nahum","Habacuc":"Habakkuk","Sophonie":"Zephaniah",
+  "Aggée":"Haggai","Zacharie":"Zechariah","Malachie":"Malachi","Matthieu":"Matthew","Marc":"Mark","Luc":"Luke",
+  "Jean":"John","Actes":"Acts","Romains":"Romans","1 Corinthiens":"1 Corinthians","2 Corinthiens":"2 Corinthians",
+  "Galates":"Galatians","Éphésiens":"Ephesians","Philippiens":"Philippians","Colossiens":"Colossians",
+  "1 Thessaloniciens":"1 Thessalonians","2 Thessaloniciens":"2 Thessalonians","1 Timothée":"1 Timothy",
+  "2 Timothée":"2 Timothy","Tite":"Titus","Philémon":"Philemon","Hébreux":"Hebrews","Jacques":"James",
+  "1 Pierre":"1 Peter","2 Pierre":"2 Peter","1 Jean":"1 John","2 Jean":"2 John","3 Jean":"3 John",
+  "Jude":"Jude","Apocalypse":"Revelation"
+};
+/* Découpe une référence du type "Josué 1:8" ou "Matthieu 6:17-18" en
+   {livre, chapitre, verset} (le premier verset d'un intervalle). */
+function parseRef(ref){
+  const m = String(ref).match(/^(.*)\s+(\d+):(\d+)/);
+  if(!m) return null;
+  return { livre: m[1].trim(), chapitre: parseInt(m[2],10), verset: parseInt(m[3],10) };
+}
+/* Construit des liens de lecture pour d'autres versions de la Bible.
+   Louis Segond 1910 reste affiché directement dans l'appli (texte inclus,
+   domaine public). Les autres versions (Segond 21, Semeur, Parole de Vie,
+   Darby, Amplified) sont sous droits ou hébergées ailleurs : on ne peut
+   pas en recopier le texte dans l'appli, donc on ouvre le bon verset sur
+   un site de lecture biblique fiable, dans un nouvel onglet. */
+function verseVersionLinks(ref){
+  const p = parseRef(ref);
+  if(!p) return [];
+  const bookNum = CANONICAL_BOOK_ORDER.indexOf(p.livre) + 1;
+  const enBook = BOOK_NAME_EN[p.livre] || p.livre;
+  const refFr = encodeURIComponent(p.livre + ' ' + p.chapitre + ':' + p.verset);
+  const refEn = encodeURIComponent(enBook + ' ' + p.chapitre + ':' + p.verset);
+  const links = [
+    { label:'Segond 21', url:'https://www.biblegateway.com/passage/?search='+refFr+'&version=SG21' },
+    { label:'Semeur', url:'https://www.biblegateway.com/passage/?search='+refFr+'&version=BDS' },
+    { label:'Parole de Vie', url: bookNum>0 ? ('https://www.bible.audio/bible-PDV-'+bookNum+'-'+p.chapitre+'-'+p.verset+'-complet-contexte-oui.htm') : null },
+    { label:'Darby', url: bookNum>0 ? ('https://www.bible.audio/bible-DBY-'+bookNum+'-'+p.chapitre+'-'+p.verset+'-complet-contexte-oui.htm') : null },
+    { label:'Amplified (EN)', url:'https://www.biblegateway.com/passage/?search='+refEn+'&version=AMP' }
+  ];
+  return links.filter(l=>l.url);
+}
 const TOTAL_CHAPTERS = Object.values(chapters).reduce((a,b)=>a+b,0); // 1189
 const PLAN_DAYS = 66*30; // 1980
 
@@ -222,10 +272,48 @@ let state = { dateDebut: new Date().toISOString().slice(0,10), chapterLog: [], c
    APPARENCE — palette de couleurs + fond d'écran, choisis dans Paramètres
    et enregistrés dans state.settings (donc synchronisés comme le reste).
    ========================================================================= */
+/* Fond d'écran "automatique" : 60 ambiances de couleurs différentes (12
+   teintes x 5 motifs), une par jour, calculées à la volée (donc aucune
+   image à télécharger — ça marche même sans connexion). Le même principe
+   que le verset du jour : le jour de l'année détermine laquelle sortir. */
+function generateDailyBg(index){
+  const hues = [205,225,250,275,300,325,350,15,40,65,90,160];
+  const hueIdx = Math.floor(index/5) % hues.length;
+  const patternIdx = index % 5;
+  const h = hues[hueIdx];
+  const h2 = (h+45)%360;
+  const hDark = (h+210)%360;
+  switch(patternIdx){
+    case 0: return 'radial-gradient(circle at 15% -10%, hsla('+h+',70%,92%,.55), transparent 45%), '
+      + 'linear-gradient(180deg, hsla('+h+',55%,93%,1), hsla('+h+',50%,76%,1) 55%, hsla('+h+',45%,56%,1))';
+    case 1: return 'radial-gradient(circle at 10% 0%, hsla('+h+',65%,86%,.5), transparent 40%), '
+      + 'radial-gradient(circle at 90% 100%, hsla('+h2+',60%,72%,.4), transparent 45%), '
+      + 'linear-gradient(160deg, hsla('+h+',50%,91%,1), hsla('+h+',45%,66%,1))';
+    case 2: return 'radial-gradient(circle at 50% 100%, hsla('+h+',70%,82%,.5), transparent 55%), '
+      + 'linear-gradient(180deg, hsla('+hDark+',48%,30%,1), hsla('+h+',55%,60%,1) 60%, hsla('+h+',60%,82%,1))';
+    case 3: return 'radial-gradient(circle at 20% 0%, rgba(255,255,255,.7), transparent 40%), '
+      + 'radial-gradient(circle at 85% 15%, rgba(255,255,255,.5), transparent 38%), '
+      + 'linear-gradient(180deg, hsla('+h+',40%,91%,1), hsla('+h+',35%,81%,1) 60%, hsla('+h+',30%,93%,1))';
+    default: return 'radial-gradient(circle at 20% 10%, hsla('+h+',70%,62%,.45), transparent 45%), '
+      + 'radial-gradient(circle at 80% 20%, hsla('+h2+',65%,57%,.4), transparent 45%), '
+      + 'linear-gradient(180deg, hsla('+hDark+',40%,11%,1), hsla('+hDark+',35%,19%,1) 55%, hsla('+hDark+',30%,26%,1))';
+  }
+}
 function applyAppearance(){
   if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
   document.documentElement.setAttribute('data-palette', state.settings.palette || 'dore');
-  document.body.setAttribute('data-bg', state.settings.bg || 'dore');
+  const bg = state.settings.bg || 'dore';
+  if(bg === 'auto'){
+    document.body.removeAttribute('data-bg');
+    const start = new Date(new Date().getFullYear(), 0, 0);
+    const dayOfYear = Math.floor((new Date() - start) / 86400000);
+    document.body.style.background = generateDailyBg(dayOfYear % 60);
+    document.body.style.backgroundAttachment = 'fixed';
+  } else {
+    document.body.style.background = '';
+    document.body.style.backgroundAttachment = '';
+    document.body.setAttribute('data-bg', bg);
+  }
   const palSel = document.getElementById('paletteSelect');
   const bgSel = document.getElementById('bgSelect');
   if(palSel) palSel.value = state.settings.palette || 'dore';
@@ -747,185 +835,362 @@ function renderVerseAndDate(){
    ========================================================================= */
 const THEMATIC_PLANS = [
   { id:'parole', titre:"Parler et déclarer la Parole de Dieu", jours:[
-    { ref:"Josué 1:8", texte:"Que ce livre de la loi ne s'éloigne point de ta bouche ; médite-le jour et nuit, pour agir fidèlement selon tout ce qui y est écrit ; car c'est alors que tu réussiras dans tes entreprises, c'est alors que tu prospéreras.", priere:"Seigneur, apprends-moi à garder ta Parole dans ma bouche et à la déclarer avec foi aujourd'hui." },
-    { ref:"Ésaïe 55:11", texte:"ainsi en est-il de ma parole, qui sort de ma bouche : elle ne retourne point à moi sans effet, sans avoir exécuté ma volonté et accompli mes desseins.", priere:"Merci Seigneur que ta Parole agit même quand je ne vois pas encore le résultat. Je choisis de m'y accrocher aujourd'hui." },
-    { ref:"Marc 11:23", texte:"Je vous le dis en vérité, si quelqu'un dit à cette montagne : Ôte-toi de là et jette-toi dans la mer, et s'il ne doute point en son cœur, mais croit que ce qu'il dit arrive, il le verra s'accomplir.", priere:"Seigneur, augmente ma foi pour que mes paroles s'alignent avec les tiennes, sans douter." },
-    { ref:"Proverbes 18:21", texte:"La mort et la vie sont au pouvoir de la langue ; celui qui l'aime en mangera les fruits.", priere:"Aide-moi aujourd'hui à choisir des paroles de vie sur moi-même et sur les miens." },
-    { ref:"Hébreux 4:12", texte:"Car la parole de Dieu est vivante et efficace, plus tranchante qu'une épée quelconque à deux tranchants, pénétrante jusqu'à partager âme et esprit, jointures et moelles ; elle juge les sentiments et les pensées du cœur.", priere:"Seigneur, que ta Parole vivante fasse son œuvre en moi aujourd'hui." },
-    { ref:"Romains 10:17", texte:"Ainsi la foi vient de ce qu'on entend, et ce qu'on entend vient de la parole de Christ.", priere:"Seigneur, nourris ma foi aujourd'hui par ta Parole entendue et déclarée." },
-    { ref:"Actes 4:31", texte:"Quand ils eurent prié, le lieu où ils étaient assemblés trembla ; ils furent tous remplis du Saint-Esprit, et ils annonçaient la parole de Dieu avec assurance.", priere:"Donne-moi cette même assurance pour parler de toi aujourd'hui." }
+    { ref:"Josué 1:8", texte:"Que ce livre de la loi ne s'éloigne point de ta bouche ; médite-le jour et nuit, pour agir fidèlement selon tout ce qui y est écrit ; car c'est alors que tu réussiras dans tes entreprises, c'est alors que tu prospéreras.", priere:"Seigneur, apprends-moi à garder ta Parole dans ma bouche et à la déclarer avec foi aujourd'hui.", explication:"Méditer et déclarer la Parole, jour après jour, est la clé pour marcher dans la réussite que Dieu promet." },
+    { ref:"Ésaïe 55:11", texte:"ainsi en est-il de ma parole, qui sort de ma bouche : elle ne retourne point à moi sans effet, sans avoir exécuté ma volonté et accompli mes desseins.", priere:"Merci Seigneur que ta Parole agit même quand je ne vois pas encore le résultat. Je choisis de m'y accrocher aujourd'hui.", explication:"Une fois prononcée par Dieu, sa Parole accomplit toujours ce pour quoi elle a été envoyée — même quand on ne voit pas encore de résultat." },
+    { ref:"Marc 11:23", texte:"Je vous le dis en vérité, si quelqu'un dit à cette montagne : Ôte-toi de là et jette-toi dans la mer, et s'il ne doute point en son cœur, mais croit que ce qu'il dit arrive, il le verra s'accomplir.", priere:"Seigneur, augmente ma foi pour que mes paroles s'alignent avec les tiennes, sans douter.", explication:"Parler avec une foi sans partage déplace des obstacles qui semblent aussi solides qu'une montagne." },
+    { ref:"Proverbes 18:21", texte:"La mort et la vie sont au pouvoir de la langue ; celui qui l'aime en mangera les fruits.", priere:"Aide-moi aujourd'hui à choisir des paroles de vie sur moi-même et sur les miens.", explication:"Les mots ont un pouvoir réel : ils peuvent construire la vie ou l'abîmer — choisis-les avec soin aujourd'hui." },
+    { ref:"Hébreux 4:12", texte:"Car la parole de Dieu est vivante et efficace, plus tranchante qu'une épée quelconque à deux tranchants, pénétrante jusqu'à partager âme et esprit, jointures et moelles ; elle juge les sentiments et les pensées du cœur.", priere:"Seigneur, que ta Parole vivante fasse son œuvre en moi aujourd'hui.", explication:"La Parole de Dieu ne se contente pas d'informer : elle transforme en profondeur, jusqu'au cœur des pensées." },
+    { ref:"Romains 10:17", texte:"Ainsi la foi vient de ce qu'on entend, et ce qu'on entend vient de la parole de Christ.", priere:"Seigneur, nourris ma foi aujourd'hui par ta Parole entendue et déclarée.", explication:"Plus on écoute et on déclare la Parole, plus la foi grandit — c'est un cercle qui se nourrit lui-même." },
+    { ref:"Actes 4:31", texte:"Quand ils eurent prié, le lieu où ils étaient assemblés trembla ; ils furent tous remplis du Saint-Esprit, et ils annonçaient la parole de Dieu avec assurance.", priere:"Donne-moi cette même assurance pour parler de toi aujourd'hui.", explication:"Une Église qui prie reçoit l'audace de proclamer la Parole sans crainte, même dans l'adversité." }
+  ], joursAlt:[
+    { ref:"Deutéronome 30:14", texte:"C'est une parole qui est tout près de toi, dans ta bouche et dans ton cœur, afin que tu la mettes en pratique.", priere:"Seigneur, que ta Parole reste proche de ma bouche et de mon cœur aujourd'hui.", explication:"Dieu ne te demande pas d'aller chercher sa Parole loin : elle est déjà accessible, à portée de cœur et de bouche." },
+    { ref:"Psaume 119:105", texte:"Ta parole est une lampe à mes pieds, et une lumière sur mon sentier.", priere:"Merci pour ta Parole qui éclaire chacun de mes pas.", explication:"La Parole guide un pas à la fois — pas besoin de voir tout le chemin pour avancer avec confiance." },
+    { ref:"Jean 1:1", texte:"Au commencement était la Parole, et la Parole était avec Dieu, et la Parole était Dieu.", priere:"Seigneur, révèle-toi à moi aujourd'hui à travers ta Parole vivante.", explication:"Jésus lui-même est appelé la Parole : lire l'Écriture, c'est aussi le rencontrer, lui." },
+    { ref:"Ésaïe 50:4", texte:"Le Seigneur, l'Éternel, m'a donné une langue exercée, pour que je sache soutenir par la parole celui qui est abattu.", priere:"Donne-moi les mots justes pour soutenir quelqu'un aujourd'hui.", explication:"Écouter Dieu chaque matin prépare à parler des mots qui relèvent plutôt que d'enfoncer." },
+    { ref:"Colossiens 3:16", texte:"Que la parole de Christ habite parmi vous abondamment ; instruisez-vous et exhortez-vous les uns les autres en toute sagesse.", priere:"Que ta Parole habite en moi abondamment aujourd'hui.", explication:"Laisser la Parole de Christ prendre toute la place transforme aussi la façon dont on s'encourage entre nous." },
+    { ref:"Luc 4:4", texte:"Jésus lui répondit : Il est écrit : L'homme ne vivra pas de pain seulement.", priere:"Aide-moi à me nourrir de toi plus que de toute autre chose aujourd'hui.", explication:"Se nourrir de la Parole est aussi vital que se nourrir de pain — l'un ne remplace pas l'autre." },
+    { ref:"Proverbes 12:18", texte:"Tel qui parle légèrement blesse comme un glaive ; mais la langue des sages apporte la guérison.", priere:"Seigneur, que mes paroles apportent la guérison, jamais la blessure.", explication:"Les mots choisis avec sagesse peuvent guérir là où des mots imprudents blesseraient." }
   ]},
   { id:'jeune', titre:"Le jeûne", jours:[
-    { ref:"Ésaïe 58:6", texte:"Voici le jeûne auquel je prends plaisir : détache les chaînes de la méchanceté, dénoue les liens de la servitude, renvoie libres les opprimés, et que l'on rompe toute espèce de joug.", priere:"Seigneur, montre-moi le vrai sens de mon jeûne : que mon cœur se tourne vers ce qui te plaît." },
-    { ref:"Matthieu 6:17-18", texte:"Mais quand tu jeûnes, parfume ta tête et lave ton visage, afin de ne pas montrer aux hommes que tu jeûnes, mais à ton Père qui est là dans le lieu secret ; et ton Père, qui voit dans le secret, te le rendra.", priere:"Père, que mon jeûne soit pour toi seul, dans le secret, sans chercher le regard des autres." },
-    { ref:"Joël 2:12", texte:"Maintenant encore, dit l'Éternel, revenez à moi de tout votre cœur, avec des jeûnes, avec des pleurs et des lamentations !", priere:"Seigneur, je reviens à toi de tout mon cœur aujourd'hui." },
-    { ref:"2 Chroniques 20:3", texte:"Dans sa frayeur, Josaphat se disposa à consulter l'Éternel, et il publia un jeûne pour tout Juda.", priere:"Comme Josaphat, je me tourne vers toi par le jeûne dans les moments où j'ai besoin de ta direction." },
-    { ref:"Daniel 9:3", texte:"Je tournai ma face vers le Seigneur Dieu, afin de recourir à la prière et aux supplications, en jeûnant et en revêtant le sac et la cendre.", priere:"Seigneur, je tourne mon visage vers toi aujourd'hui, avec humilité." },
-    { ref:"Matthieu 9:15", texte:"Jésus leur répondit : Les amis de l'époux peuvent-ils s'affliger pendant que l'époux est avec eux ? Les jours viendront où l'époux leur sera enlevé, et alors ils jeûneront.", priere:"Seigneur, apprends-moi à reconnaître le bon moment pour jeûner." },
-    { ref:"Ésaïe 58:8", texte:"Alors ta lumière poindra comme l'aurore, et ta guérison germera promptement ; ta justice marchera devant toi, et la gloire de l'Éternel sera ton arrière-garde.", priere:"Merci pour la lumière et la guérison que tu promets après le jeûne." }
+    { ref:"Ésaïe 58:6", texte:"Voici le jeûne auquel je prends plaisir : détache les chaînes de la méchanceté, dénoue les liens de la servitude, renvoie libres les opprimés, et que l'on rompe toute espèce de joug.", priere:"Seigneur, montre-moi le vrai sens de mon jeûne : que mon cœur se tourne vers ce qui te plaît.", explication:"Le jeûne que Dieu aime n'est pas qu'une privation : c'est un cœur qui se tourne vers la justice et la libération des opprimés." },
+    { ref:"Matthieu 6:17-18", texte:"Mais quand tu jeûnes, parfume ta tête et lave ton visage, afin de ne pas montrer aux hommes que tu jeûnes, mais à ton Père qui est là dans le lieu secret ; et ton Père, qui voit dans le secret, te le rendra.", priere:"Père, que mon jeûne soit pour toi seul, dans le secret, sans chercher le regard des autres.", explication:"Jeûner en secret, sans mise en scène, garde le cœur tourné vers Dieu plutôt que vers le regard des autres." },
+    { ref:"Joël 2:12", texte:"Maintenant encore, dit l'Éternel, revenez à moi de tout votre cœur, avec des jeûnes, avec des pleurs et des lamentations !", priere:"Seigneur, je reviens à toi de tout mon cœur aujourd'hui.", explication:"Revenir à Dieu de tout son cœur est le vrai objectif du jeûne, bien au-delà du simple renoncement à la nourriture." },
+    { ref:"2 Chroniques 20:3", texte:"Dans sa frayeur, Josaphat se disposa à consulter l'Éternel, et il publia un jeûne pour tout Juda.", priere:"Comme Josaphat, je me tourne vers toi par le jeûne dans les moments où j'ai besoin de ta direction.", explication:"Face à une situation qui dépasse ses forces, Josaphat a choisi de chercher Dieu par le jeûne plutôt que de paniquer seul." },
+    { ref:"Daniel 9:3", texte:"Je tournai ma face vers le Seigneur Dieu, afin de recourir à la prière et aux supplications, en jeûnant et en revêtant le sac et la cendre.", priere:"Seigneur, je tourne mon visage vers toi aujourd'hui, avec humilité.", explication:"Le jeûne accompagné de prière et d'humilité ouvre la porte à une direction plus claire de la part de Dieu." },
+    { ref:"Matthieu 9:15", texte:"Jésus leur répondit : Les amis de l'époux peuvent-ils s'affliger pendant que l'époux est avec eux ? Les jours viendront où l'époux leur sera enlevé, et alors ils jeûneront.", priere:"Seigneur, apprends-moi à reconnaître le bon moment pour jeûner.", explication:"Il y a un temps pour jeûner et un temps pour se réjouir — la sagesse est de reconnaître lequel vivre." },
+    { ref:"Ésaïe 58:8", texte:"Alors ta lumière poindra comme l'aurore, et ta guérison germera promptement ; ta justice marchera devant toi, et la gloire de l'Éternel sera ton arrière-garde.", priere:"Merci pour la lumière et la guérison que tu promets après le jeûne.", explication:"Le jeûne fait avec un cœur sincère porte du fruit : lumière, guérison et la présence protectrice de Dieu." }
+  ], joursAlt:[
+    { ref:"Matthieu 4:2", texte:"Après avoir jeûné quarante jours et quarante nuits, il eut faim.", priere:"Seigneur, comme Jésus, aide-moi à tenir ferme même quand mon corps réclame.", explication:"Même Jésus a connu la faim dans le jeûne — la force ne vient pas de l'absence d'épreuve, mais de la présence de Dieu dans l'épreuve." },
+    { ref:"Esdras 8:23", texte:"Nous jeûnâmes, et nous invoquâmes notre Dieu à ce sujet, et il nous exauça.", priere:"Merci de répondre quand je me tourne vers toi avec un cœur sincère.", explication:"Un jeûne accompagné d'une vraie recherche de Dieu attire une réponse, pas seulement un effort personnel." },
+    { ref:"Néhémie 1:4", texte:"Lorsque j'entendis ces choses, je m'assis et je pleurai... Je jeûnai et je priai devant le Dieu des cieux.", priere:"Seigneur, comme Néhémie, je viens à toi avec ce qui pèse sur mon cœur aujourd'hui.", explication:"Le jeûne peut naître d'un chagrin réel : Dieu accueille cette sincérité plutôt qu'une performance religieuse." },
+    { ref:"Actes 13:2", texte:"Pendant qu'ils servaient le Seigneur dans leur ministère et qu'ils jeûnaient, le Saint-Esprit dit : Mettez-moi à part Barnabas et Saul.", priere:"Mets-moi à part pour ce que tu veux que je fasse, Seigneur.", explication:"Le jeûne peut aussi précéder un envoi, une mission que Dieu confie à un moment précis." },
+    { ref:"Psaume 35:13", texte:"j'humiliais mon âme par le jeûne, je priais, la tête penchée sur mon sein.", priere:"Aide-moi à m'humilier devant toi aujourd'hui, sans orgueil.", explication:"S'humilier devant Dieu dans l'épreuve de quelqu'un d'autre est aussi une forme d'intercession par le jeûne." },
+    { ref:"Ésaïe 58:9", texte:"Alors tu appelleras, et l'Éternel répondra ; tu crieras, et il dira : Me voici !", priere:"Merci de répondre me voici à ceux qui t'appellent, Seigneur.", explication:"La promesse est claire : un cœur qui crie sincèrement vers Dieu reçoit une réponse." },
+    { ref:"Luc 2:37", texte:"Elle ne quittait pas le temple, et elle servait Dieu nuit et jour dans le jeûne et dans la prière.", priere:"Seigneur, donne-moi la persévérance d'Anne dans la prière et le jeûne.", explication:"Une vie de jeûne et de prière fidèle sur la durée, comme celle d'Anne, prépare à reconnaître ce que Dieu fait." }
   ]},
   { id:'amour', titre:"L'amour de Dieu", jours:[
-    { ref:"Jean 3:16", texte:"Car Dieu a tant aimé le monde qu'il a donné son Fils unique, afin que quiconque croit en lui ne périsse point, mais qu'il ait la vie éternelle.", priere:"Merci Seigneur pour cet amour qui a tout donné pour moi." },
-    { ref:"Romains 5:8", texte:"Mais Dieu prouve son amour envers nous, en ce que, lorsque nous étions encore des pécheurs, Christ est mort pour nous.", priere:"Merci de m'avoir aimée avant même que je le mérite." },
-    { ref:"1 Jean 4:19", texte:"Pour nous, nous l'aimons, parce qu'il nous a aimés le premier.", priere:"Apprends-moi à aimer les autres comme tu m'as aimée en premier." },
-    { ref:"Sophonie 3:17", texte:"L'Éternel, ton Dieu, est au milieu de toi, comme un héros qui sauve ; il fera de toi sa plus grande joie ; il gardera le silence dans son amour ; il aura pour toi des transports d'allégresse.", priere:"Merci Seigneur de te réjouir de moi. Aide-moi à recevoir cet amour aujourd'hui." },
-    { ref:"Romains 8:38-39", texte:"Car j'ai l'assurance que ni la mort ni la vie, ni les anges ni les dominations, ni les choses présentes ni les choses à venir, ni les puissances, ni la hauteur, ni la profondeur, ni aucune autre créature ne pourra nous séparer de l'amour de Dieu manifesté en Jésus-Christ notre Seigneur.", priere:"Merci que rien ne puisse me séparer de ton amour, quoi qu'il arrive aujourd'hui." },
-    { ref:"1 Jean 4:16", texte:"Dieu est amour ; et celui qui demeure dans l'amour demeure en Dieu, et Dieu demeure en lui.", priere:"Seigneur, aide-moi à demeurer dans ton amour aujourd'hui." },
-    { ref:"Psaume 136:1", texte:"Louez l'Éternel, car il est bon, car sa miséricorde dure à toujours !", priere:"Merci Seigneur pour ta bonté qui ne s'arrête jamais." }
+    { ref:"Jean 3:16", texte:"Car Dieu a tant aimé le monde qu'il a donné son Fils unique, afin que quiconque croit en lui ne périsse point, mais qu'il ait la vie éternelle.", priere:"Merci Seigneur pour cet amour qui a tout donné pour moi.", explication:"L'amour de Dieu ne se mesure pas à nos mérites : il a donné ce qu'il avait de plus précieux pour que nous vivions." },
+    { ref:"Romains 5:8", texte:"Mais Dieu prouve son amour envers nous, en ce que, lorsque nous étions encore des pécheurs, Christ est mort pour nous.", priere:"Merci de m'avoir aimée avant même que je le mérite.", explication:"Dieu n'a pas attendu que nous soyons parfaits pour nous aimer — la croix a précédé notre changement, pas suivi." },
+    { ref:"1 Jean 4:19", texte:"Pour nous, nous l'aimons, parce qu'il nous a aimés le premier.", priere:"Apprends-moi à aimer les autres comme tu m'as aimée en premier.", explication:"Notre amour pour Dieu et pour les autres prend racine dans le fait qu'il nous a aimés en premier." },
+    { ref:"Sophonie 3:17", texte:"L'Éternel, ton Dieu, est au milieu de toi, comme un héros qui sauve ; il fera de toi sa plus grande joie ; il gardera le silence dans son amour ; il aura pour toi des transports d'allégresse.", priere:"Merci Seigneur de te réjouir de moi. Aide-moi à recevoir cet amour aujourd'hui.", explication:"Dieu ne se contente pas de t'aimer de loin : il se réjouit de toi comme un père se réjouit de son enfant." },
+    { ref:"Romains 8:38-39", texte:"Car j'ai l'assurance que ni la mort ni la vie, ni les anges ni les dominations, ni les choses présentes ni les choses à venir, ni les puissances, ni la hauteur, ni la profondeur, ni aucune autre créature ne pourra nous séparer de l'amour de Dieu manifesté en Jésus-Christ notre Seigneur.", priere:"Merci que rien ne puisse me séparer de ton amour, quoi qu'il arrive aujourd'hui.", explication:"Aucune circonstance, aucune puissance, rien dans l'univers ne peut te couper de l'amour que Dieu te porte en Christ." },
+    { ref:"1 Jean 4:16", texte:"Dieu est amour ; et celui qui demeure dans l'amour demeure en Dieu, et Dieu demeure en lui.", priere:"Seigneur, aide-moi à demeurer dans ton amour aujourd'hui.", explication:"Demeurer dans l'amour, c'est demeurer proche de Dieu lui-même, car son identité profonde est d'être amour." },
+    { ref:"Psaume 136:1", texte:"Louez l'Éternel, car il est bon, car sa miséricorde dure à toujours !", priere:"Merci Seigneur pour ta bonté qui ne s'arrête jamais.", explication:"La bonté de Dieu et sa fidélité ne connaissent pas de fin — c'est une raison de louange qui ne s'épuise jamais." }
+  ], joursAlt:[
+    { ref:"Jean 15:9", texte:"Comme le Père m'a aimé, je vous ai aussi aimés. Demeurez dans mon amour.", priere:"Aide-moi à demeurer dans ton amour aujourd'hui, Seigneur.", explication:"Demeurer dans l'amour de Jésus n'est pas une option ponctuelle mais un lieu où rester en permanence." },
+    { ref:"Romains 8:35", texte:"Qui nous séparera de l'amour de Christ ? Sera-ce la tribulation, ou l'angoisse, ou la persécution ?", priere:"Merci que rien ne puisse me séparer de ton amour, quoi qu'il arrive.", explication:"Aucune épreuve, aussi violente soit-elle, n'a le pouvoir de couper le lien d'amour établi en Christ." },
+    { ref:"Jérémie 31:3", texte:"Je t'aime d'un amour éternel ; c'est pourquoi je te conserve ma bonté.", priere:"Merci Seigneur pour ton amour éternel qui ne dépend pas de moi.", explication:"L'amour de Dieu n'est pas une réaction ponctuelle : c'est un attachement éternel, décidé avant même notre existence." },
+    { ref:"Psaume 103:11", texte:"Autant les cieux sont élevés au-dessus de la terre, autant sa bonté est grande pour ceux qui le craignent.", priere:"Merci pour ta bonté immense envers ceux qui te craignent.", explication:"La bonté de Dieu dépasse toute mesure humaine, à l'image de la distance entre le ciel et la terre." },
+    { ref:"1 Corinthiens 13:4", texte:"La charité est patiente, elle est pleine de bonté ; la charité n'est point envieuse, elle ne s'enfle point d'orgueil.", priere:"Seigneur, façonne en moi un amour patient et sans orgueil envers les autres.", explication:"L'amour véritable se reconnaît à la patience et à l'absence d'orgueil, pas seulement aux paroles." },
+    { ref:"Deutéronome 7:9", texte:"L'Éternel, ton Dieu... garde son alliance et sa miséricorde jusqu'à la millième génération envers ceux qui l'aiment.", priere:"Merci pour ta fidélité qui dure de génération en génération.", explication:"La fidélité de Dieu à son alliance traverse les générations sans jamais faiblir." },
+    { ref:"1 Jean 3:1", texte:"Voyez quel amour le Père nous a témoigné, pour que nous soyons appelés enfants de Dieu ! Et nous le sommes.", priere:"Merci de m'appeler ton enfant, Seigneur.", explication:"Être appelé enfant de Dieu est un amour immérité, donné et non gagné." }
   ]},
   { id:'priere', titre:"La prière", jours:[
-    { ref:"Marc 11:24", texte:"C'est pourquoi je vous dis : Tout ce que vous demanderez en priant, croyez que vous l'avez reçu, et vous le verrez s'accomplir.", priere:"Seigneur, augmente ma foi quand je te présente mes demandes aujourd'hui." },
-    { ref:"Matthieu 6:6", texte:"Mais quand tu pries, entre dans ta chambre, ferme ta porte, et prie ton Père qui est là dans le lieu secret ; et ton Père, qui voit dans le secret, te le rendra.", priere:"Merci pour ce lieu secret où je peux te parler librement." },
-    { ref:"Jacques 5:16", texte:"confessez vos péchés les uns aux autres, et priez les uns pour les autres, afin que vous soyez guéris. La prière fervente du juste a une grande efficace.", priere:"Apprends-moi à prier avec ferveur, pour moi et pour les autres." },
-    { ref:"1 Thessaloniciens 5:17", texte:"Priez sans cesse.", priere:"Seigneur, aide-moi à garder un dialogue avec toi tout au long de cette journée." },
-    { ref:"Jérémie 33:3", texte:"Invoque-moi, et je te répondrai ; je t'annoncerai de grandes choses, des choses cachées, que tu ne connais pas.", priere:"Je t'invoque aujourd'hui, Seigneur : parle-moi." },
-    { ref:"Luc 18:1", texte:"Jésus leur adressa une parabole, pour montrer qu'il faut toujours prier, et ne point se relâcher.", priere:"Aide-moi à persévérer dans la prière aujourd'hui, sans me décourager." },
-    { ref:"Éphésiens 6:18", texte:"Faites en tout temps par l'Esprit toutes sortes de prières et de supplications. Veillez à cela avec une entière persévérance, et priez pour tous les saints.", priere:"Seigneur, mets sur mon cœur les personnes pour qui je dois prier aujourd'hui." }
+    { ref:"Marc 11:24", texte:"C'est pourquoi je vous dis : Tout ce que vous demanderez en priant, croyez que vous l'avez reçu, et vous le verrez s'accomplir.", priere:"Seigneur, augmente ma foi quand je te présente mes demandes aujourd'hui.", explication:"Prier avec l'assurance d'avoir déjà reçu change la façon dont on attend la réponse de Dieu." },
+    { ref:"Matthieu 6:6", texte:"Mais quand tu pries, entre dans ta chambre, ferme ta porte, et prie ton Père qui est là dans le lieu secret ; et ton Père, qui voit dans le secret, te le rendra.", priere:"Merci pour ce lieu secret où je peux te parler librement.", explication:"Le lieu secret protège la prière de tout désir de paraître — Dieu regarde ce qui se vit dans l'intime." },
+    { ref:"Jacques 5:16", texte:"confessez vos péchés les uns aux autres, et priez les uns pour les autres, afin que vous soyez guéris. La prière fervente du juste a une grande efficace.", priere:"Apprends-moi à prier avec ferveur, pour moi et pour les autres.", explication:"La prière sincère d'une personne juste a un impact réel, spécialement quand elle est partagée en confiance avec d'autres." },
+    { ref:"1 Thessaloniciens 5:17", texte:"Priez sans cesse.", priere:"Seigneur, aide-moi à garder un dialogue avec toi tout au long de cette journée.", explication:"Prier sans cesse, ce n'est pas prier tout le temps à genoux, mais garder un dialogue continu avec Dieu." },
+    { ref:"Jérémie 33:3", texte:"Invoque-moi, et je te répondrai ; je t'annoncerai de grandes choses, des choses cachées, que tu ne connais pas.", priere:"Je t'invoque aujourd'hui, Seigneur : parle-moi.", explication:"Dieu invite à l'appeler pour révéler ce que l'on ne pourrait jamais découvrir par soi-même." },
+    { ref:"Luc 18:1", texte:"Jésus leur adressa une parabole, pour montrer qu'il faut toujours prier, et ne point se relâcher.", priere:"Aide-moi à persévérer dans la prière aujourd'hui, sans me décourager.", explication:"La persévérance dans la prière, sans se décourager, est justement ce que Jésus enseigne à ses disciples." },
+    { ref:"Éphésiens 6:18", texte:"Faites en tout temps par l'Esprit toutes sortes de prières et de supplications. Veillez à cela avec une entière persévérance, et priez pour tous les saints.", priere:"Seigneur, mets sur mon cœur les personnes pour qui je dois prier aujourd'hui.", explication:"Prier pour les autres, pas seulement pour soi, fait aussi partie du combat spirituel auquel on est appelé." }
+  ], joursAlt:[
+    { ref:"Philippiens 4:6", texte:"Ne vous inquiétez de rien ; mais en toute chose faites connaître vos besoins à Dieu par des prières et des supplications, avec des actions de grâces.", priere:"Seigneur, je te présente ce qui m'inquiète aujourd'hui, avec reconnaissance.", explication:"Remplacer l'inquiétude par la prière change concrètement ce que l'on ressent, pas seulement ce que l'on croit." },
+    { ref:"Matthieu 7:7", texte:"Demandez, et l'on vous donnera ; cherchez, et vous trouverez ; frappez, et l'on vous ouvrira.", priere:"J'ose demander, chercher et frapper à ta porte aujourd'hui, Seigneur.", explication:"Dieu invite à une démarche active dans la prière : demander, chercher, frapper, sans se décourager." },
+    { ref:"Psaume 5:3", texte:"Éternel ! le matin tu entends ma voix ; le matin je me tourne vers toi, et je regarde.", priere:"Le matin, je tourne mon regard vers toi, Seigneur.", explication:"Commencer la journée en se tournant vers Dieu oriente tout le reste de la journée." },
+    { ref:"Colossiens 4:2", texte:"Persévérez dans la prière, veillez-y avec actions de grâces.", priere:"Aide-moi à persévérer dans la prière avec un cœur reconnaissant.", explication:"La persévérance dans la prière s'accompagne naturellement de reconnaissance, pas seulement de demandes." },
+    { ref:"1 Jean 5:14", texte:"Nous avons auprès de lui cette assurance, que si nous demandons quelque chose selon sa volonté, il nous écoute.", priere:"Merci de m'écouter quand je demande selon ta volonté.", explication:"Prier selon la volonté de Dieu donne une assurance réelle d'être entendu." },
+    { ref:"Psaume 145:18", texte:"L'Éternel est près de tous ceux qui l'invoquent, de tous ceux qui l'invoquent avec sincérité.", priere:"Merci d'être proche de moi quand je t'invoque avec sincérité.", explication:"La sincérité, plus que la forme des mots, est ce qui rapproche de Dieu dans la prière." },
+    { ref:"Marc 1:35", texte:"Vers le matin, pendant qu'il faisait encore fort obscur, Jésus se leva, et sortit pour aller dans un lieu désert, où il pria.", priere:"Comme Jésus, aide-moi à chercher un moment seule avec toi aujourd'hui.", explication:"Même Jésus prenait le temps de s'isoler pour prier, montrant que ce besoin ne disparaît jamais." }
   ]},
   { id:'saint-esprit', titre:"Le Saint-Esprit", jours:[
-    { ref:"Actes 1:8", texte:"Mais vous recevrez une puissance, le Saint-Esprit survenant sur vous, et vous serez mes témoins.", priere:"Remplis-moi de ta puissance aujourd'hui, Seigneur." },
-    { ref:"Jean 14:26", texte:"Mais le consolateur, l'Esprit-Saint, que le Père enverra en mon nom, vous enseignera toutes choses, et vous rappellera tout ce que je vous ai dit.", priere:"Merci pour ton Esprit qui m'enseigne et me rappelle ta Parole." },
-    { ref:"Galates 5:22-23", texte:"Mais le fruit de l'Esprit, c'est l'amour, la joie, la paix, la patience, la bonté, la bénignité, la fidélité, la douceur, la tempérance ; la loi n'est pas contre ces choses.", priere:"Fais grandir ce fruit en moi aujourd'hui, Seigneur." },
-    { ref:"Romains 8:26", texte:"De même aussi l'Esprit nous aide dans notre faiblesse, car nous ne savons pas ce qu'il nous convient de demander dans nos prières.", priere:"Merci de m'aider dans ma faiblesse, même quand je ne sais pas quoi te dire." },
-    { ref:"Zacharie 4:6", texte:"ce n'est ni par la puissance ni par la force, mais c'est par mon Esprit, dit l'Éternel des armées.", priere:"Seigneur, que ce soit ton Esprit qui agisse aujourd'hui, pas mes seules forces." },
-    { ref:"Jean 14:16-17", texte:"Et moi, je prierai le Père, et il vous donnera un autre consolateur, afin qu'il demeure éternellement avec vous, l'Esprit de vérité.", priere:"Merci pour ta présence permanente en moi par ton Esprit." },
-    { ref:"Actes 2:4", texte:"Et ils furent tous remplis du Saint-Esprit, et se mirent à parler en d'autres langues, selon que l'Esprit leur donnait de s'exprimer.", priere:"Remplis-moi à nouveau de ton Esprit aujourd'hui, Seigneur." }
+    { ref:"Actes 1:8", texte:"Mais vous recevrez une puissance, le Saint-Esprit survenant sur vous, et vous serez mes témoins.", priere:"Remplis-moi de ta puissance aujourd'hui, Seigneur.", explication:"La puissance promise par Jésus n'est pas pour impressionner, mais pour être témoin de lui là où l'on vit." },
+    { ref:"Jean 14:26", texte:"Mais le consolateur, l'Esprit-Saint, que le Père enverra en mon nom, vous enseignera toutes choses, et vous rappellera tout ce que je vous ai dit.", priere:"Merci pour ton Esprit qui m'enseigne et me rappelle ta Parole.", explication:"Le Saint-Esprit ne se contente pas d'enseigner : il rappelle aussi, au bon moment, ce qui a déjà été appris." },
+    { ref:"Galates 5:22-23", texte:"Mais le fruit de l'Esprit, c'est l'amour, la joie, la paix, la patience, la bonté, la bénignité, la fidélité, la douceur, la tempérance ; la loi n'est pas contre ces choses.", priere:"Fais grandir ce fruit en moi aujourd'hui, Seigneur.", explication:"Le fruit de l'Esprit grandit progressivement, comme un fruit sur un arbre, pas par un effort de volonté seul." },
+    { ref:"Romains 8:26", texte:"De même aussi l'Esprit nous aide dans notre faiblesse, car nous ne savons pas ce qu'il nous convient de demander dans nos prières.", priere:"Merci de m'aider dans ma faiblesse, même quand je ne sais pas quoi te dire.", explication:"Dans les moments où l'on ne sait plus quoi dire à Dieu, l'Esprit intercède lui-même à notre place." },
+    { ref:"Zacharie 4:6", texte:"ce n'est ni par la puissance ni par la force, mais c'est par mon Esprit, dit l'Éternel des armées.", priere:"Seigneur, que ce soit ton Esprit qui agisse aujourd'hui, pas mes seules forces.", explication:"Les plus grandes victoires spirituelles ne viennent ni de la force ni du talent, mais de l'Esprit de Dieu." },
+    { ref:"Jean 14:16-17", texte:"Et moi, je prierai le Père, et il vous donnera un autre consolateur, afin qu'il demeure éternellement avec vous, l'Esprit de vérité.", priere:"Merci pour ta présence permanente en moi par ton Esprit.", explication:"L'Esprit promis par Jésus n'est pas de passage : il demeure durablement avec ceux qui croient." },
+    { ref:"Actes 2:4", texte:"Et ils furent tous remplis du Saint-Esprit, et se mirent à parler en d'autres langues, selon que l'Esprit leur donnait de s'exprimer.", priere:"Remplis-moi à nouveau de ton Esprit aujourd'hui, Seigneur.", explication:"Être rempli de l'Esprit peut se vivre à nouveau, pas seulement une fois pour toutes." }
+  ], joursAlt:[
+    { ref:"Éphésiens 5:18", texte:"soyez remplis de l'Esprit.", priere:"Remplis-moi de ton Esprit à nouveau aujourd'hui, Seigneur.", explication:"Être rempli de l'Esprit est une invitation à renouveler continuellement, pas un état acquis une seule fois." },
+    { ref:"Actes 2:38", texte:"repentez-vous, et que chacun de vous soit baptisé au nom de Jésus-Christ, pour le pardon de vos péchés ; et vous recevrez le don du Saint-Esprit.", priere:"Merci pour le don de ton Esprit reçu par la foi.", explication:"Le don du Saint-Esprit accompagne la repentance et la foi, il n'est pas réservé à une élite spirituelle." },
+    { ref:"1 Corinthiens 6:19", texte:"Ne savez-vous pas que votre corps est le temple du Saint-Esprit qui est en vous ?", priere:"Aide-moi à honorer mon corps comme un temple de ton Esprit.", explication:"Considérer son corps comme un temple change le rapport que l'on a avec soi-même et avec Dieu." },
+    { ref:"Romains 8:14", texte:"car tous ceux qui sont conduits par l'Esprit de Dieu sont fils de Dieu.", priere:"Conduis-moi par ton Esprit aujourd'hui, Seigneur, dans mes choix.", explication:"Être conduit par l'Esprit fait partie de ce qui définit une véritable identité d'enfant de Dieu." },
+    { ref:"Galates 5:25", texte:"Si nous vivons par l'Esprit, marchons aussi selon l'Esprit.", priere:"Aide-moi à marcher selon l'Esprit, pas selon mes seules envies.", explication:"Vivre par l'Esprit implique aussi de marcher concrètement selon lui, pas seulement d'en parler." },
+    { ref:"Jean 3:8", texte:"Le vent souffle où il veut... Il en est ainsi de tout homme qui est né de l'Esprit.", priere:"Merci que ton Esprit agit, même quand je ne comprends pas tout.", explication:"L'action de l'Esprit reste souvent mystérieuse, mais ses effets sont bien réels dans une vie transformée." },
+    { ref:"2 Timothée 1:7", texte:"Car ce n'est pas un esprit de timidité que Dieu nous a donné, mais un esprit de force, d'amour et de sagesse.", priere:"Merci de ne pas m'avoir donné un esprit de timidité, mais de force et d'amour.", explication:"La peur ne vient pas de Dieu : il donne plutôt la force, l'amour et un esprit posé." }
   ]},
   { id:'marcher-jesus', titre:"Marcher avec Jésus, son attitude", jours:[
-    { ref:"Philippiens 2:5", texte:"Ayez en vous les sentiments qui étaient en Jésus-Christ.", priere:"Seigneur, forme en moi tes sentiments aujourd'hui." },
-    { ref:"Matthieu 11:29", texte:"Prenez mon joug sur vous et recevez mes instructions, car je suis doux et humble de cœur ; et vous trouverez du repos pour vos âmes.", priere:"Apprends-moi ta douceur et ton humilité, Seigneur." },
-    { ref:"Jean 13:15", texte:"car je vous ai donné un exemple, afin que vous fassiez comme je vous ai fait.", priere:"Aide-moi à suivre ton exemple envers les personnes que je croiserai aujourd'hui." },
-    { ref:"Luc 6:31", texte:"Ce que vous voulez que les hommes fassent pour vous, faites-le de même pour eux.", priere:"Seigneur, aide-moi à traiter les autres comme j'aimerais être traitée." },
-    { ref:"1 Pierre 2:21", texte:"Et c'est à cela que vous avez été appelés, parce que Christ aussi a souffert pour vous, vous laissant un exemple, afin que vous suiviez ses traces.", priere:"Merci pour ton exemple. Aide-moi à marcher dans tes traces aujourd'hui." },
-    { ref:"Colossiens 3:12", texte:"Ainsi donc, comme des élus de Dieu, saints et bien-aimés, revêtez-vous d'entrailles de miséricorde, de bonté, d'humilité, de douceur, de patience.", priere:"Seigneur, revêts-moi de ton caractère aujourd'hui." },
-    { ref:"Jean 15:5", texte:"Je suis le cep, vous êtes les sarments. Celui qui demeure en moi et en qui je demeure porte beaucoup de fruit, car sans moi vous ne pouvez rien faire.", priere:"Aide-moi à demeurer en toi aujourd'hui, dans chaque décision." }
+    { ref:"Philippiens 2:5", texte:"Ayez en vous les sentiments qui étaient en Jésus-Christ.", priere:"Seigneur, forme en moi tes sentiments aujourd'hui.", explication:"Adopter les pensées de Jésus commence par vouloir ce qu'il veut, pas seulement imiter ses actes." },
+    { ref:"Matthieu 11:29", texte:"Prenez mon joug sur vous et recevez mes instructions, car je suis doux et humble de cœur ; et vous trouverez du repos pour vos âmes.", priere:"Apprends-moi ta douceur et ton humilité, Seigneur.", explication:"La douceur et l'humilité de Jésus ne sont pas des faiblesses : elles apportent un vrai repos intérieur." },
+    { ref:"Jean 13:15", texte:"car je vous ai donné un exemple, afin que vous fassiez comme je vous ai fait.", priere:"Aide-moi à suivre ton exemple envers les personnes que je croiserai aujourd'hui.", explication:"Servir les autres à l'exemple de Jésus, même dans les petits gestes, marque une vie qui lui ressemble." },
+    { ref:"Luc 6:31", texte:"Ce que vous voulez que les hommes fassent pour vous, faites-le de même pour eux.", priere:"Seigneur, aide-moi à traiter les autres comme j'aimerais être traitée.", explication:"La règle d'or de Jésus se vit concrètement en se demandant comment on aimerait soi-même être traité." },
+    { ref:"1 Pierre 2:21", texte:"Et c'est à cela que vous avez été appelés, parce que Christ aussi a souffert pour vous, vous laissant un exemple, afin que vous suiviez ses traces.", priere:"Merci pour ton exemple. Aide-moi à marcher dans tes traces aujourd'hui.", explication:"Souffrir injustement sans perdre sa foi, comme Jésus, laisse une trace que d'autres peuvent suivre." },
+    { ref:"Colossiens 3:12", texte:"Ainsi donc, comme des élus de Dieu, saints et bien-aimés, revêtez-vous d'entrailles de miséricorde, de bonté, d'humilité, de douceur, de patience.", priere:"Seigneur, revêts-moi de ton caractère aujourd'hui.", explication:"Se revêtir des qualités de Christ est un choix actif, à renouveler chaque jour, pas un état acquis une fois." },
+    { ref:"Jean 15:5", texte:"Je suis le cep, vous êtes les sarments. Celui qui demeure en moi et en qui je demeure porte beaucoup de fruit, car sans moi vous ne pouvez rien faire.", priere:"Aide-moi à demeurer en toi aujourd'hui, dans chaque décision.", explication:"Rester attaché à Jésus comme un sarment au cep est la seule condition pour porter du fruit qui dure." }
+  ], joursAlt:[
+    { ref:"Matthieu 16:24", texte:"Si quelqu'un veut venir après moi, qu'il renonce à lui-même, qu'il se charge de sa croix, et qu'il me suive.", priere:"Seigneur, aide-moi à te suivre aujourd'hui, même quand c'est coûteux.", explication:"Suivre Jésus implique un renoncement réel à soi-même, pas seulement une adhésion d'idées." },
+    { ref:"Jean 8:12", texte:"Je suis la lumière du monde ; celui qui me suit ne marchera pas dans les ténèbres, mais il aura la lumière de la vie.", priere:"Merci d'être la lumière qui éclaire mon chemin aujourd'hui.", explication:"Marcher avec Jésus signifie sortir des ténèbres pour vivre dans sa lumière au quotidien." },
+    { ref:"1 Jean 2:6", texte:"celui qui dit demeurer en lui doit marcher aussi comme il a marché lui-même.", priere:"Aide-moi à marcher comme tu as marché, Seigneur.", explication:"Prétendre demeurer en Christ engage à vivre concrètement comme lui a vécu." },
+    { ref:"Matthieu 4:19", texte:"Suivez-moi, et je vous ferai pêcheurs d'hommes.", priere:"Rends-moi disponible aujourd'hui pour te suivre, où que ce soit.", explication:"L'appel de Jésus à suivre reste aussi direct et personnel aujourd'hui qu'il l'était pour les premiers disciples." },
+    { ref:"Philippiens 3:8", texte:"je regarde toutes choses comme une perte, à cause de l'excellence de la connaissance de Jésus-Christ mon Seigneur.", priere:"Que te connaître compte plus que tout le reste aujourd'hui.", explication:"Connaître Jésus personnellement dépasse en valeur toute autre réussite ou reconnaissance." },
+    { ref:"Jean 12:26", texte:"Si quelqu'un me sert, qu'il me suive ; et là où je suis, là aussi sera mon serviteur.", priere:"Aide-moi à te servir fidèlement là où tu me places.", explication:"Servir Jésus signifie aussi accepter d'aller là où lui-même choisit de nous conduire." },
+    { ref:"Éphésiens 5:1", texte:"Devenez donc les imitateurs de Dieu, comme des enfants bien-aimés.", priere:"Aide-moi à t'imiter aujourd'hui, comme ton enfant bien-aimée.", explication:"Imiter Dieu, comme un enfant imite un parent aimant, est le cœur même de marcher avec Jésus." }
   ]},
   { id:'tentation', titre:"Résister à la tentation", jours:[
-    { ref:"1 Corinthiens 10:13", texte:"Aucune tentation ne vous est survenue qui n'ait été humaine, et Dieu, qui est fidèle, ne permettra pas que vous soyez tentés au delà de vos forces ; mais avec la tentation il préparera aussi le moyen d'en sortir, afin que vous puissiez la supporter.", priere:"Merci Seigneur que tu prépares toujours une issue. Aide-moi à la voir aujourd'hui." },
-    { ref:"Jacques 4:7", texte:"Soumettez-vous donc à Dieu ; résistez au diable, et il fuira loin de vous.", priere:"Je me soumets à toi aujourd'hui, Seigneur, et je résiste à ce qui m'éloigne de toi." },
-    { ref:"Matthieu 26:41", texte:"Veillez et priez, afin que vous ne tombiez pas dans la tentation ; l'esprit est bien disposé, mais la chair est faible.", priere:"Aide-moi à veiller et à prier plutôt que de compter sur mes propres forces." },
-    { ref:"Éphésiens 6:11", texte:"Revêtez-vous de toutes les armes de Dieu, afin de pouvoir tenir ferme contre les ruses du diable.", priere:"Seigneur, revêts-moi de tes armes aujourd'hui." },
-    { ref:"Psaume 119:11", texte:"Je serre ta parole dans mon cœur, afin de ne pas pécher contre toi.", priere:"Aide-moi à garder ta Parole tout près de mon cœur aujourd'hui." },
-    { ref:"Hébreux 4:15", texte:"Car nous n'avons pas un souverain sacrificateur qui ne puisse compatir à nos faiblesses ; au contraire, il a été tenté comme nous en toutes choses, sans commettre de péché.", priere:"Merci Jésus de comprendre mes luttes. Aide-moi comme toi à résister sans céder." },
-    { ref:"Jacques 1:12", texte:"Heureux l'homme qui supporte patiemment la tentation ; car, après avoir été éprouvé, il recevra la couronne de vie, que le Seigneur a promise à ceux qui l'aiment.", priere:"Donne-moi la persévérance dans l'épreuve aujourd'hui, Seigneur." }
+    { ref:"1 Corinthiens 10:13", texte:"Aucune tentation ne vous est survenue qui n'ait été humaine, et Dieu, qui est fidèle, ne permettra pas que vous soyez tentés au delà de vos forces ; mais avec la tentation il préparera aussi le moyen d'en sortir, afin que vous puissiez la supporter.", priere:"Merci Seigneur que tu prépares toujours une issue. Aide-moi à la voir aujourd'hui.", explication:"Aucune tentation n'est trop grande pour être surmontée : Dieu prépare toujours une issue, même quand elle n'est pas visible tout de suite." },
+    { ref:"Jacques 4:7", texte:"Soumettez-vous donc à Dieu ; résistez au diable, et il fuira loin de vous.", priere:"Je me soumets à toi aujourd'hui, Seigneur, et je résiste à ce qui m'éloigne de toi.", explication:"Résister au mal commence par une soumission sincère à Dieu — le combat se gagne d'abord à cet endroit-là." },
+    { ref:"Matthieu 26:41", texte:"Veillez et priez, afin que vous ne tombiez pas dans la tentation ; l'esprit est bien disposé, mais la chair est faible.", priere:"Aide-moi à veiller et à prier plutôt que de compter sur mes propres forces.", explication:"La volonté seule ne suffit pas face à la tentation : c'est la vigilance et la prière qui protègent vraiment." },
+    { ref:"Éphésiens 6:11", texte:"Revêtez-vous de toutes les armes de Dieu, afin de pouvoir tenir ferme contre les ruses du diable.", priere:"Seigneur, revêts-moi de tes armes aujourd'hui.", explication:"Les armes spirituelles ne sont pas symboliques : elles permettent réellement de tenir ferme face aux ruses de l'ennemi." },
+    { ref:"Psaume 119:11", texte:"Je serre ta parole dans mon cœur, afin de ne pas pécher contre toi.", priere:"Aide-moi à garder ta Parole tout près de mon cœur aujourd'hui.", explication:"Connaître et garder la Parole de Dieu dans son cœur agit comme une protection avant même que la tentation survienne." },
+    { ref:"Hébreux 4:15", texte:"Car nous n'avons pas un souverain sacrificateur qui ne puisse compatir à nos faiblesses ; au contraire, il a été tenté comme nous en toutes choses, sans commettre de péché.", priere:"Merci Jésus de comprendre mes luttes. Aide-moi comme toi à résister sans céder.", explication:"Jésus a connu la tentation dans toute sa force, ce qui le rend capable de comprendre nos luttes sans jamais juger." },
+    { ref:"Jacques 1:12", texte:"Heureux l'homme qui supporte patiemment la tentation ; car, après avoir été éprouvé, il recevra la couronne de vie, que le Seigneur a promise à ceux qui l'aiment.", priere:"Donne-moi la persévérance dans l'épreuve aujourd'hui, Seigneur.", explication:"Tenir bon dans l'épreuve de la tentation n'est jamais vain : une récompense durable est promise à qui persévère." }
+  ], joursAlt:[
+    { ref:"Jacques 1:13", texte:"que personne, lorsqu'il est tenté, ne dise : C'est Dieu qui me tente. Car Dieu ne peut être tenté par le mal, et il ne tente lui-même personne.", priere:"Seigneur, aide-moi à ne jamais te blâmer pour mes propres luttes, mais à venir à toi.", explication:"Dieu n'est jamais à l'origine de la tentation : la reconnaître ainsi aide à ne pas se détourner de lui dans l'épreuve." },
+    { ref:"1 Pierre 5:8", texte:"Soyez sobres, veillez. Votre adversaire, le diable, rôde comme un lion rugissant, cherchant qui il dévorera.", priere:"Rends-moi vigilante aujourd'hui, Seigneur, face à ce qui cherche à me faire tomber.", explication:"Rester vigilant et sobre protège de l'attaque, qui vient souvent au moment où l'on s'y attend le moins." },
+    { ref:"Genèse 39:12", texte:"elle le saisit par son vêtement, en disant : Couche avec moi ! Il lui laissa son vêtement dans la main, et s'enfuit.", priere:"Comme Joseph, donne-moi le courage de fuir plutôt que de céder.", explication:"Fuir physiquement une situation de tentation, comme Joseph, vaut souvent mieux que d'essayer d'y résister sur place." },
+    { ref:"1 Corinthiens 6:18", texte:"Fuyez l'impudicité. Quelque autre péché qu'un homme commette est hors du corps ; mais celui qui se livre à l'impudicité pèche contre son propre corps.", priere:"Aide-moi à fuir ce qui blesse mon corps et mon témoignage.", explication:"Certaines tentations touchent directement le corps ; les fuir n'est pas une faiblesse, mais une sagesse." },
+    { ref:"Romains 6:12", texte:"Que le péché ne règne donc point dans votre corps mortel, et n'obéissez pas à ses convoitises.", priere:"Que le péché ne règne pas sur moi aujourd'hui, Seigneur.", explication:"Refuser de laisser le péché dicter ses choix demande une décision active, renouvelée chaque jour." },
+    { ref:"2 Timothée 2:22", texte:"Fuis les passions de la jeunesse, et recherche la justice, la foi, la charité, la paix.", priere:"Aide-moi à rechercher ce qui est juste plutôt que ce qui est facile.", explication:"Rechercher activement la justice et la paix protège mieux que simplement essayer d'éviter le mal." },
+    { ref:"Psaume 141:3", texte:"Éternel, mets une garde à ma bouche, veille sur la porte de mes lèvres.", priere:"Mets une garde sur mes lèvres et sur mon cœur aujourd'hui, Seigneur.", explication:"Demander à Dieu de garder ses paroles est une prière concrète contre les tentations du quotidien." }
   ]},
   { id:'reves', titre:"Les rêves et les visions", jours:[
-    { ref:"Joël 2:28", texte:"Après cela, je répandrai mon esprit sur toute chair ; vos fils et vos filles prophétiseront, vos vieillards auront des songes, et vos jeunes gens des visions.", priere:"Seigneur, parle-moi, même dans mon sommeil, et donne-moi un cœur qui écoute." },
-    { ref:"Genèse 37:5", texte:"Joseph eut un songe, et il le raconta à ses frères, qui le haïrent encore davantage.", priere:"Seigneur, aide-moi à garder précieusement ce que tu me montres, même quand ce n'est pas encore compris par tous." },
-    { ref:"Genèse 28:12", texte:"Il eut un songe. Et voici, une échelle était appuyée sur la terre, et son sommet touchait au ciel. Et voici, les anges de Dieu montaient et descendaient par cette échelle.", priere:"Seigneur, rappelle-moi que le ciel est proche de moi, même quand je ne le vois pas." },
-    { ref:"Daniel 1:17", texte:"Dieu accorda à ces quatre jeunes gens de la science, de l'intelligence dans toutes les lettres et une sagesse ; et Daniel expliquait toutes les visions et tous les songes.", priere:"Donne-moi la sagesse de comprendre ce que tu veux me montrer, Seigneur." },
-    { ref:"Matthieu 1:20", texte:"Comme il y pensait, voici, un ange du Seigneur lui apparut en songe, et dit : Joseph, fils de David, ne crains pas de prendre avec toi Marie, ta femme, car l'enfant qu'elle a conçu vient du Saint-Esprit.", priere:"Seigneur, guide-moi comme tu as guidé Joseph, même dans mes moments de doute." },
-    { ref:"Actes 16:9", texte:"Pendant la nuit, Paul eut une vision : un Macédonien lui apparut, et lui fit cette prière : Passe en Macédoine, secours-nous !", priere:"Seigneur, montre-moi où tu veux m'envoyer et ce que tu veux que je fasse." },
-    { ref:"Nombres 12:6", texte:"il dit : Écoutez bien mes paroles ! Lorsqu'il y aura parmi vous un prophète, c'est dans une vision que moi, l'Éternel, je me révélerai à lui, c'est dans un songe que je lui parlerai.", priere:"Merci Seigneur de te révéler à moi de différentes façons. Garde mon cœur attentif." }
+    { ref:"Joël 2:28", texte:"Après cela, je répandrai mon esprit sur toute chair ; vos fils et vos filles prophétiseront, vos vieillards auront des songes, et vos jeunes gens des visions.", priere:"Seigneur, parle-moi, même dans mon sommeil, et donne-moi un cœur qui écoute.", explication:"Dieu promet de parler à toutes les générations, y compris à travers des songes et des visions, pas seulement aux prophètes d'autrefois." },
+    { ref:"Genèse 37:5", texte:"Joseph eut un songe, et il le raconta à ses frères, qui le haïrent encore davantage.", priere:"Seigneur, aide-moi à garder précieusement ce que tu me montres, même quand ce n'est pas encore compris par tous.", explication:"Un rêve donné par Dieu peut être incompris ou même mal reçu par les autres avant de se réaliser." },
+    { ref:"Genèse 28:12", texte:"Il eut un songe. Et voici, une échelle était appuyée sur la terre, et son sommet touchait au ciel. Et voici, les anges de Dieu montaient et descendaient par cette échelle.", priere:"Seigneur, rappelle-moi que le ciel est proche de moi, même quand je ne le vois pas.", explication:"Certains songes révèlent que le ciel est bien plus proche de notre quotidien qu'il n'y paraît." },
+    { ref:"Daniel 1:17", texte:"Dieu accorda à ces quatre jeunes gens de la science, de l'intelligence dans toutes les lettres et une sagesse ; et Daniel expliquait toutes les visions et tous les songes.", priere:"Donne-moi la sagesse de comprendre ce que tu veux me montrer, Seigneur.", explication:"La sagesse pour comprendre un songe est elle-même un don que Dieu accorde à qui la lui demande." },
+    { ref:"Matthieu 1:20", texte:"Comme il y pensait, voici, un ange du Seigneur lui apparut en songe, et dit : Joseph, fils de David, ne crains pas de prendre avec toi Marie, ta femme, car l'enfant qu'elle a conçu vient du Saint-Esprit.", priere:"Seigneur, guide-moi comme tu as guidé Joseph, même dans mes moments de doute.", explication:"Dieu peut intervenir dans un songe pour guider une décision importante, comme il l'a fait pour Joseph." },
+    { ref:"Actes 16:9", texte:"Pendant la nuit, Paul eut une vision : un Macédonien lui apparut, et lui fit cette prière : Passe en Macédoine, secours-nous !", priere:"Seigneur, montre-moi où tu veux m'envoyer et ce que tu veux que je fasse.", explication:"Une vision peut aussi révéler une direction claire à prendre, un appel précis à suivre sans tarder." },
+    { ref:"Nombres 12:6", texte:"il dit : Écoutez bien mes paroles ! Lorsqu'il y aura parmi vous un prophète, c'est dans une vision que moi, l'Éternel, je me révélerai à lui, c'est dans un songe que je lui parlerai.", priere:"Merci Seigneur de te révéler à moi de différentes façons. Garde mon cœur attentif.", explication:"Le songe et la vision restent, aujourd'hui encore, une façon dont Dieu choisit parfois de se révéler." }
+  ], joursAlt:[
+    { ref:"Genèse 40:8", texte:"Nous avons eu un songe, et il n'y a personne pour l'expliquer. Joseph leur dit : N'est-ce pas à Dieu qu'appartiennent les explications ?", priere:"Seigneur, à toi appartiennent les explications que je ne comprends pas encore.", explication:"Comprendre un songe ou une situation confuse commence par reconnaître que la vraie explication vient de Dieu." },
+    { ref:"Genèse 41:16", texte:"Joseph répondit à Pharaon, en disant : Ce n'est pas moi ! c'est Dieu qui donnera une réponse favorable à Pharaon.", priere:"Merci que ce n'est pas de moi, mais de toi, que vient la bonne réponse.", explication:"Attribuer à Dieu, et non à soi-même, la sagesse reçue garde dans l'humilité." },
+    { ref:"1 Samuel 3:10", texte:"L'Éternel vint et se présenta... Samuel répondit : Parle, car ton serviteur écoute.", priere:"Parle, Seigneur, car je suis à l'écoute aujourd'hui.", explication:"Être disponible pour écouter Dieu, même en pleine nuit, ouvre la porte à sa direction." },
+    { ref:"Matthieu 2:12", texte:"Divinement avertis en songe de ne pas retourner vers Hérode, les mages regagnèrent leur pays par un autre chemin.", priere:"Avertis-moi, Seigneur, quand je dois changer de chemin.", explication:"Dieu peut avertir directement d'un danger ou d'un changement de direction nécessaire." },
+    { ref:"Matthieu 2:13", texte:"Un ange du Seigneur apparut en songe à Joseph, et dit : Lève-toi, prends le petit enfant et sa mère, fuis en Égypte.", priere:"Merci de me protéger et de me guider, même dans mon sommeil.", explication:"La protection de Dieu peut passer par des instructions précises données au moment voulu." },
+    { ref:"Daniel 2:19", texte:"Alors le secret fut révélé à Daniel dans une vision pendant la nuit. Et Daniel bénit le Dieu des cieux.", priere:"Merci de révéler ce qui est caché, en ton temps, Seigneur.", explication:"Ce qui semble cacher un secret peut être révélé par Dieu, en son temps, à qui le cherche sincèrement." },
+    { ref:"1 Rois 3:5", texte:"À Gabaon, l'Éternel apparut en songe à Salomon pendant la nuit, et Dieu lui dit : Demande ce que tu veux que je te donne.", priere:"Seigneur, donne-moi la sagesse comme tu l'as donnée à Salomon.", explication:"Demander la sagesse à Dieu, plutôt que la richesse ou le pouvoir, reflète des priorités justes." }
   ]},
   { id:'forteresses', titre:"Fermer les forteresses démoniaques", jours:[
-    { ref:"2 Corinthiens 10:4-5", texte:"car les armes avec lesquelles nous combattons ne sont pas charnelles ; mais elles sont puissantes, par la vertu de Dieu, pour renverser des forteresses. Nous renversons les raisonnements et toute hauteur qui s'élève contre la connaissance de Dieu, et nous amenons toute pensée captive à l'obéissance de Christ.", priere:"Seigneur, je remets mes pensées captives à ton obéissance aujourd'hui." },
-    { ref:"Éphésiens 6:12", texte:"Car nous n'avons pas à lutter contre la chair et le sang, mais contre les dominations, contre les autorités, contre les princes de ce monde de ténèbres, contre les esprits méchants dans les lieux célestes.", priere:"Ouvre mes yeux sur le vrai combat, Seigneur, et arme-moi pour aujourd'hui." },
-    { ref:"Luc 10:19", texte:"Voici, je vous ai donné le pouvoir de marcher sur les serpents et les scorpions, et sur toute la puissance de l'ennemi ; et rien ne pourra vous nuire.", priere:"Merci pour l'autorité que tu me donnes. J'avance aujourd'hui sans crainte." },
-    { ref:"1 Jean 4:4", texte:"Vous, petits enfants, vous êtes de Dieu, et vous les avez vaincus, parce que celui qui est en vous est plus grand que celui qui est dans le monde.", priere:"Merci que celui qui est en moi est plus grand que tout ce qui m'oppose." },
-    { ref:"Marc 16:17", texte:"Voici les miracles qui accompagneront ceux qui auront cru : en mon nom, ils chasseront les démons ; ils parleront de nouvelles langues.", priere:"Seigneur, donne-moi de marcher avec l'autorité que tu promets à ceux qui croient." },
-    { ref:"Colossiens 2:15", texte:"il a dépouillé les dominations et les autorités, et les a livrées publiquement en spectacle, en triomphant d'elles par la croix.", priere:"Merci Jésus pour ta victoire déjà remportée sur tout ce qui m'oppose." },
-    { ref:"Apocalypse 12:11", texte:"Ils l'ont vaincu à cause du sang de l'agneau et à cause de la parole de leur témoignage, et ils n'ont pas aimé leur vie jusqu'à craindre la mort.", priere:"Seigneur, aide-moi à tenir ferme dans mon témoignage aujourd'hui." }
+    { ref:"2 Corinthiens 10:4-5", texte:"car les armes avec lesquelles nous combattons ne sont pas charnelles ; mais elles sont puissantes, par la vertu de Dieu, pour renverser des forteresses. Nous renversons les raisonnements et toute hauteur qui s'élève contre la connaissance de Dieu, et nous amenons toute pensée captive à l'obéissance de Christ.", priere:"Seigneur, je remets mes pensées captives à ton obéissance aujourd'hui.", explication:"Le vrai combat spirituel se joue d'abord dans les pensées : c'est là que les forteresses se dressent, et c'est là qu'elles tombent." },
+    { ref:"Éphésiens 6:12", texte:"Car nous n'avons pas à lutter contre la chair et le sang, mais contre les dominations, contre les autorités, contre les princes de ce monde de ténèbres, contre les esprits méchants dans les lieux célestes.", priere:"Ouvre mes yeux sur le vrai combat, Seigneur, et arme-moi pour aujourd'hui.", explication:"Reconnaître que le combat n'est pas contre des personnes mais contre des puissances spirituelles change la façon de se battre." },
+    { ref:"Luc 10:19", texte:"Voici, je vous ai donné le pouvoir de marcher sur les serpents et les scorpions, et sur toute la puissance de l'ennemi ; et rien ne pourra vous nuire.", priere:"Merci pour l'autorité que tu me donnes. J'avance aujourd'hui sans crainte.", explication:"L'autorité donnée par Jésus sur la puissance de l'ennemi n'est pas symbolique : elle protège réellement celui qui marche avec lui." },
+    { ref:"1 Jean 4:4", texte:"Vous, petits enfants, vous êtes de Dieu, et vous les avez vaincus, parce que celui qui est en vous est plus grand que celui qui est dans le monde.", priere:"Merci que celui qui est en moi est plus grand que tout ce qui m'oppose.", explication:"Celui qui habite en nous est déjà plus fort que tout ce qui cherche à nous opprimer." },
+    { ref:"Marc 16:17", texte:"Voici les miracles qui accompagneront ceux qui auront cru : en mon nom, ils chasseront les démons ; ils parleront de nouvelles langues.", priere:"Seigneur, donne-moi de marcher avec l'autorité que tu promets à ceux qui croient.", explication:"L'autorité pour agir au nom de Jésus est accessible à ceux qui croient, pas réservée à quelques-uns." },
+    { ref:"Colossiens 2:15", texte:"il a dépouillé les dominations et les autorités, et les a livrées publiquement en spectacle, en triomphant d'elles par la croix.", priere:"Merci Jésus pour ta victoire déjà remportée sur tout ce qui m'oppose.", explication:"La victoire sur les forces qui oppressent a déjà été remportée à la croix, une fois pour toutes." },
+    { ref:"Apocalypse 12:11", texte:"Ils l'ont vaincu à cause du sang de l'agneau et à cause de la parole de leur témoignage, et ils n'ont pas aimé leur vie jusqu'à craindre la mort.", priere:"Seigneur, aide-moi à tenir ferme dans mon témoignage aujourd'hui.", explication:"Le témoignage et la fidélité, même au prix fort, restent une arme puissante contre l'accusateur." }
+  ], joursAlt:[
+    { ref:"Éphésiens 6:13", texte:"C'est pourquoi, prenez toutes les armes de Dieu, afin de pouvoir résister dans le mauvais jour, et tenir ferme après avoir tout surmonté.", priere:"Seigneur, arme-moi aujourd'hui pour tenir ferme dans le combat.", explication:"Résister dans le combat spirituel demande de revêtir concrètement les armes que Dieu fournit, pas seulement d'espérer." },
+    { ref:"Psaume 18:2", texte:"Éternel, mon rocher, ma forteresse, mon libérateur ! Mon Dieu, mon rocher, où je trouve un abri !", priere:"Merci d'être mon rocher et ma forteresse, Seigneur.", explication:"Dieu lui-même est décrit comme une forteresse : il n'offre pas seulement une protection, il EST la protection." },
+    { ref:"Psaume 91:1", texte:"Celui qui demeure sous l'abri du Très-Haut repose à l'ombre du Tout-Puissant.", priere:"Je me repose sous ton abri aujourd'hui, Seigneur.", explication:"Demeurer sous la protection de Dieu est une position de repos, pas de lutte permanente." },
+    { ref:"Romains 8:37", texte:"Mais dans toutes ces choses nous sommes plus que vainqueurs par celui qui nous a aimés.", priere:"Merci que je suis plus que vainqueur par toi, Seigneur.", explication:"La victoire promise dépasse une simple survie : elle place du côté des vainqueurs, pas des victimes." },
+    { ref:"1 Corinthiens 15:57", texte:"grâces soient rendues à Dieu, qui nous donne la victoire par notre Seigneur Jésus-Christ !", priere:"Merci pour la victoire que tu donnes par Jésus-Christ.", explication:"La victoire sur les forces opposées vient de Dieu, à travers Jésus, jamais de nos propres forces." },
+    { ref:"Psaume 27:1", texte:"L'Éternel est ma lumière et mon salut : de qui aurais-je crainte ? L'Éternel est le rempart de ma vie.", priere:"Merci d'être ma lumière et mon rempart, je n'ai rien à craindre.", explication:"Face à ce qui pourrait faire peur, savoir que Dieu est un rempart change complètement la perspective." },
+    { ref:"Nahum 1:7", texte:"L'Éternel est bon, il est un refuge au jour de la détresse ; il connaît ceux qui se confient en lui.", priere:"Merci d'être mon refuge au jour de la détresse.", explication:"Dieu reste un refuge fiable spécifiquement dans les moments de détresse, pas seulement dans le calme." }
   ]},
   { id:'connaitre-dieu', titre:"Connaître Dieu", jours:[
-    { ref:"Jérémie 9:24", texte:"mais que celui qui veut se glorifier se glorifie de ce qu'il a l'intelligence de me connaître, et de savoir que je suis l'Éternel qui exerce la bonté, le droit et la justice sur la terre.", priere:"Seigneur, je veux te connaître toi, plus que tout le reste." },
-    { ref:"Jean 17:3", texte:"Or, la vie éternelle, c'est qu'ils te connaissent, toi, le seul vrai Dieu, et celui que tu as envoyé, Jésus-Christ.", priere:"Merci pour cette vie éternelle qui commence par te connaître dès aujourd'hui." },
-    { ref:"Philippiens 3:10", texte:"Afin de connaître Christ, et la puissance de sa résurrection, et la communion de ses souffrances, en devenant conforme à lui dans sa mort.", priere:"Fais-moi connaître ta puissance et ta présence aujourd'hui, Seigneur." },
-    { ref:"Osée 6:3", texte:"Connaissons, cherchons à connaître l'Éternel ; sa venue est aussi certaine que celle de l'aurore.", priere:"J'ai soif de te connaître davantage, Seigneur." },
-    { ref:"Psaume 46:11", texte:"Arrêtez, et sachez que je suis Dieu.", priere:"Seigneur, aide-moi à m'arrêter aujourd'hui pour reconnaître qui tu es." },
-    { ref:"Colossiens 1:10", texte:"afin de vous conduire d'une manière digne du Seigneur et lui être entièrement agréables, portant des fruits en toute bonne œuvre et croissant par la connaissance de Dieu.", priere:"Fais-moi grandir dans ta connaissance aujourd'hui, Seigneur." },
-    { ref:"1 Chroniques 28:9", texte:"connais le Dieu de ton père, et sers-le avec un cœur dévoué et l'âme empressée ; car l'Éternel sonde tous les cœurs, et il discerne toute la suite des pensées.", priere:"Seigneur, sonde mon cœur et rapproche-moi de toi aujourd'hui." }
+    { ref:"Jérémie 9:24", texte:"mais que celui qui veut se glorifier se glorifie de ce qu'il a l'intelligence de me connaître, et de savoir que je suis l'Éternel qui exerce la bonté, le droit et la justice sur la terre.", priere:"Seigneur, je veux te connaître toi, plus que tout le reste.", explication:"Connaître Dieu personnellement vaut infiniment plus que toute autre réussite ou reconnaissance dans la vie." },
+    { ref:"Jean 17:3", texte:"Or, la vie éternelle, c'est qu'ils te connaissent, toi, le seul vrai Dieu, et celui que tu as envoyé, Jésus-Christ.", priere:"Merci pour cette vie éternelle qui commence par te connaître dès aujourd'hui.", explication:"La vie éternelle ne se limite pas à un avenir lointain : elle commence dès maintenant, par connaître Dieu." },
+    { ref:"Philippiens 3:10", texte:"Afin de connaître Christ, et la puissance de sa résurrection, et la communion de ses souffrances, en devenant conforme à lui dans sa mort.", priere:"Fais-moi connaître ta puissance et ta présence aujourd'hui, Seigneur.", explication:"Connaître Christ inclut aussi accepter de traverser des difficultés à sa suite, pas seulement recevoir sa puissance." },
+    { ref:"Osée 6:3", texte:"Connaissons, cherchons à connaître l'Éternel ; sa venue est aussi certaine que celle de l'aurore.", priere:"J'ai soif de te connaître davantage, Seigneur.", explication:"Chercher à connaître Dieu est une quête à poursuivre chaque jour, avec autant de certitude que le lever du jour." },
+    { ref:"Psaume 46:11", texte:"Arrêtez, et sachez que je suis Dieu.", priere:"Seigneur, aide-moi à m'arrêter aujourd'hui pour reconnaître qui tu es.", explication:"S'arrêter, même brièvement, pour reconnaître qui est Dieu recentre un cœur agité ou dispersé." },
+    { ref:"Colossiens 1:10", texte:"afin de vous conduire d'une manière digne du Seigneur et lui être entièrement agréables, portant des fruits en toute bonne œuvre et croissant par la connaissance de Dieu.", priere:"Fais-moi grandir dans ta connaissance aujourd'hui, Seigneur.", explication:"Grandir dans la connaissance de Dieu se voit concrètement dans une vie qui porte du fruit." },
+    { ref:"1 Chroniques 28:9", texte:"connais le Dieu de ton père, et sers-le avec un cœur dévoué et l'âme empressée ; car l'Éternel sonde tous les cœurs, et il discerne toute la suite des pensées.", priere:"Seigneur, sonde mon cœur et rapproche-moi de toi aujourd'hui.", explication:"Dieu ne se laisse pas tromper par les apparences : il sonde le cœur au-delà des mots et des actes." }
+  ], joursAlt:[
+    { ref:"Psaume 34:8", texte:"Sentez et voyez combien l'Éternel est bon ! Heureux l'homme qui cherche en lui son refuge !", priere:"Aide-moi à goûter combien tu es bon aujourd'hui, Seigneur.", explication:"Goûter la bonté de Dieu par l'expérience personnelle dépasse le simple fait d'en entendre parler." },
+    { ref:"Jérémie 29:13", texte:"Vous me chercherez, et vous me trouverez, si vous me cherchez de tout votre cœur.", priere:"Je te cherche de tout mon cœur aujourd'hui, Seigneur.", explication:"Chercher Dieu de tout son cœur, pas à moitié, est la condition posée pour le trouver vraiment." },
+    { ref:"Psaume 145:3", texte:"L'Éternel est grand et très digne de louange, et sa grandeur est insondable.", priere:"Ta grandeur dépasse ma compréhension — merci de te révéler à moi quand même.", explication:"La grandeur de Dieu dépasse toute mesure humaine, ce qui n'empêche pas de le connaître réellement." },
+    { ref:"Job 42:5", texte:"Mon oreille avait entendu parler de toi ; mais maintenant mon œil t'a vu.", priere:"Fais que je te connaisse, pas seulement que j'entende parler de toi.", explication:"Il y a une différence entre savoir des choses sur Dieu et l'avoir personnellement rencontré." },
+    { ref:"Éphésiens 1:17", texte:"qu'il vous donne un esprit de sagesse et de révélation, dans sa connaissance.", priere:"Donne-moi un esprit de sagesse pour mieux te connaître.", explication:"La vraie connaissance de Dieu est aussi un don spirituel, pas seulement le fruit d'un effort intellectuel." },
+    { ref:"Psaume 25:14", texte:"L'amitié de l'Éternel est pour ceux qui le craignent, et son alliance leur donne instruction.", priere:"Merci pour ton amitié envers ceux qui te craignent.", explication:"Une relation proche avec Dieu s'accompagne d'une instruction particulière réservée à ceux qui le craignent." },
+    { ref:"Daniel 11:32", texte:"le peuple qui connaît son Dieu manifestera de la fermeté et agira.", priere:"Donne-moi la fermeté de ceux qui te connaissent vraiment.", explication:"Connaître Dieu donne une fermeté intérieure qui permet d'agir avec assurance, même en période difficile." }
   ]},
   { id:'education-enfants', titre:"L'éducation des enfants", jours:[
-    { ref:"Proverbes 22:6", texte:"Instruis l'enfant selon la voie qu'il doit suivre ; et quand il sera vieux, il ne s'en détournera pas.", priere:"Seigneur, donne-moi la sagesse pour guider mon enfant sur ton chemin." },
-    { ref:"Deutéronome 6:6-7", texte:"Et ces commandements, que je te donne aujourd'hui, seront dans ton cœur. Tu les inculqueras à tes enfants, et tu en parleras quand tu seras dans ta maison, quand tu iras en voyage, quand tu te coucheras et quand tu te lèveras.", priere:"Aide-moi à transmettre ta Parole à mon enfant, dans les petits moments du quotidien." },
-    { ref:"Éphésiens 6:4", texte:"Et vous, pères, n'irritez pas vos enfants, mais élevez-les en les corrigeant et en les instruisant selon le Seigneur.", priere:"Seigneur, donne-moi patience et douceur dans la façon dont je corrige et j'instruis." },
-    { ref:"Proverbes 29:17", texte:"Chatie ton fils, et il te donnera du repos, et il procurera des délices à ton âme.", priere:"Merci pour la promesse de paix qui accompagne une bonne éducation. Aide-moi à persévérer." },
-    { ref:"Proverbes 13:24", texte:"Celui qui épargne la verge hait son fils, mais celui qui l'aime cherche à le corriger.", priere:"Donne-moi l'équilibre entre fermeté et amour dans l'éducation de mon enfant." },
-    { ref:"Marc 10:14", texte:"Jésus, voyant cela, fut indigné, et leur dit : Laissez venir à moi les petits enfants, et ne les empêchez pas ; car le royaume de Dieu est pour ceux qui leur ressemblent.", priere:"Merci pour la place que tu donnes aux enfants dans ton cœur. Aide-moi à les accueillir comme toi." },
-    { ref:"Proverbes 1:8", texte:"Écoute, mon fils, l'instruction de ton père, et ne rejette pas l'enseignement de ta mère.", priere:"Aide-moi à transmettre une instruction que mon enfant voudra recevoir." }
+    { ref:"Proverbes 22:6", texte:"Instruis l'enfant selon la voie qu'il doit suivre ; et quand il sera vieux, il ne s'en détournera pas.", priere:"Seigneur, donne-moi la sagesse pour guider mon enfant sur ton chemin.", explication:"Ce qu'un enfant apprend tôt dans la voie de Dieu continue de le marquer bien après avoir grandi." },
+    { ref:"Deutéronome 6:6-7", texte:"Et ces commandements, que je te donne aujourd'hui, seront dans ton cœur. Tu les inculqueras à tes enfants, et tu en parleras quand tu seras dans ta maison, quand tu iras en voyage, quand tu te coucheras et quand tu te lèveras.", priere:"Aide-moi à transmettre ta Parole à mon enfant, dans les petits moments du quotidien.", explication:"Transmettre la foi ne se limite pas à un enseignement formel : cela se vit dans les gestes ordinaires du quotidien." },
+    { ref:"Éphésiens 6:4", texte:"Et vous, pères, n'irritez pas vos enfants, mais élevez-les en les corrigeant et en les instruisant selon le Seigneur.", priere:"Seigneur, donne-moi patience et douceur dans la façon dont je corrige et j'instruis.", explication:"Corriger un enfant avec patience, sans l'irriter inutilement, reflète l'équilibre que Dieu demande aux parents." },
+    { ref:"Proverbes 29:17", texte:"Chatie ton fils, et il te donnera du repos, et il procurera des délices à ton âme.", priere:"Merci pour la promesse de paix qui accompagne une bonne éducation. Aide-moi à persévérer.", explication:"Une discipline juste, exercée avec constance, produit finalement de la paix dans la relation parent-enfant." },
+    { ref:"Proverbes 13:24", texte:"Celui qui épargne la verge hait son fils, mais celui qui l'aime cherche à le corriger.", priere:"Donne-moi l'équilibre entre fermeté et amour dans l'éducation de mon enfant.", explication:"Aimer véritablement un enfant inclut le courage de le corriger, pas seulement de le combler." },
+    { ref:"Marc 10:14", texte:"Jésus, voyant cela, fut indigné, et leur dit : Laissez venir à moi les petits enfants, et ne les empêchez pas ; car le royaume de Dieu est pour ceux qui leur ressemblent.", priere:"Merci pour la place que tu donnes aux enfants dans ton cœur. Aide-moi à les accueillir comme toi.", explication:"Jésus accueille les enfants avec une tendresse particulière — un modèle pour ceux qui les élèvent." },
+    { ref:"Proverbes 1:8", texte:"Écoute, mon fils, l'instruction de ton père, et ne rejette pas l'enseignement de ta mère.", priere:"Aide-moi à transmettre une instruction que mon enfant voudra recevoir.", explication:"L'instruction reçue des parents reste une base précieuse à ne pas rejeter, même en grandissant." }
+  ], joursAlt:[
+    { ref:"Psaume 127:3", texte:"Voici, les fils sont un héritage de l'Éternel, le fruit des entrailles est une récompense.", priere:"Merci pour mon enfant, un héritage précieux que tu m'as confié.", explication:"Voir un enfant comme un héritage donné par Dieu change le regard porté sur les responsabilités parentales." },
+    { ref:"Psaume 78:4", texte:"Nous dirons à la génération future les louanges de l'Éternel, et sa puissance, et les prodiges qu'il a opérés.", priere:"Aide-moi à transmettre tes louanges à la génération qui vient.", explication:"Transmettre à la génération future ce que Dieu a fait est une mission qui commence dans la famille." },
+    { ref:"Colossiens 3:21", texte:"Pères, n'irritez pas vos enfants, de peur qu'ils ne se découragent.", priere:"Garde-moi de décourager mon enfant, Seigneur.", explication:"Décourager un enfant par la dureté peut freiner sa confiance bien plus que la corriger avec amour." },
+    { ref:"Proverbes 23:22", texte:"Écoute ton père, lui qui t'a engendré, et ne méprise pas ta mère, quand elle est devenue vieille.", priere:"Aide mon enfant à honorer ce qu'on lui transmet avec amour.", explication:"Le respect entre générations se construit et se transmet dans les deux sens, avec le temps." },
+    { ref:"Marc 10:16", texte:"Puis il les prit dans ses bras, et les bénit, en leur imposant les mains.", priere:"Merci pour la tendresse de Jésus envers les enfants.", explication:"L'attention et la bénédiction que Jésus donne aux enfants restent un modèle pour les adultes qui les entourent." },
+    { ref:"3 Jean 1:4", texte:"Je n'ai pas de plus grande joie que d'apprendre que mes enfants marchent dans la vérité.", priere:"Ma plus grande joie serait de voir mon enfant marcher dans ta vérité.", explication:"Voir ses enfants avancer dans la foi peut devenir la plus grande source de joie d'un parent." },
+    { ref:"Proverbes 20:7", texte:"Le juste marche dans son intégrité ; heureux ses enfants après lui !", priere:"Aide-moi à marcher dans l'intégrité pour le bien de mon enfant.", explication:"L'exemple d'intégrité donné par un parent profite concrètement à ses enfants, bien au-delà de son propre temps." }
   ]},
   { id:'guerison-coeur', titre:"La guérison du cœur (blessures intérieures)", jours:[
-    { ref:"Psaume 147:3", texte:"Il guérit ceux qui ont le cœur brisé, et il panse leurs blessures.", priere:"Seigneur, viens panser ce qui est encore blessé en moi aujourd'hui." },
-    { ref:"Ésaïe 61:1", texte:"L'esprit du Seigneur, l'Éternel, est sur moi, car l'Éternel m'a oint pour porter de bonnes nouvelles aux malheureux ; il m'a envoyé pour guérir ceux qui ont le cœur brisé, pour proclamer aux captifs la liberté, et aux prisonniers la délivrance.", priere:"Merci pour la liberté que tu offres. Je reçois ta délivrance aujourd'hui." },
-    { ref:"Psaume 34:18", texte:"L'Éternel est près de ceux qui ont le cœur brisé, et il sauve ceux qui ont l'esprit dans l'abattement.", priere:"Merci d'être proche de moi précisément là où j'ai mal." },
-    { ref:"Jérémie 30:17", texte:"Mais je te guérirai, je panserai tes plaies, dit l'Éternel.", priere:"Je reçois ta guérison aujourd'hui, Seigneur, à mon rythme." },
-    { ref:"Ésaïe 53:5", texte:"Mais il était blessé pour nos péchés, brisé pour nos iniquités ; le châtiment qui nous donne la paix est tombé sur lui, et c'est par ses meurtrissures que nous sommes guéris.", priere:"Merci Jésus d'avoir porté ce que je ne pouvais pas porter seule." },
-    { ref:"Ésaïe 40:29", texte:"Il donne de la force à celui qui est fatigué, et il augmente la vigueur de celui qui tombe en défaillance.", priere:"Seigneur, renouvelle mes forces aujourd'hui, là où je suis fatiguée." },
-    { ref:"Psaume 73:26", texte:"Ma chair et mon cœur peuvent se consumer : Dieu sera toujours le rocher de mon cœur et mon partage.", priere:"Merci d'être mon rocher, même quand tout le reste vacille." }
+    { ref:"Psaume 147:3", texte:"Il guérit ceux qui ont le cœur brisé, et il panse leurs blessures.", priere:"Seigneur, viens panser ce qui est encore blessé en moi aujourd'hui.", explication:"Dieu ne se contente pas de constater un cœur brisé : il s'engage personnellement à le guérir et à le panser." },
+    { ref:"Ésaïe 61:1", texte:"L'esprit du Seigneur, l'Éternel, est sur moi, car l'Éternel m'a oint pour porter de bonnes nouvelles aux malheureux ; il m'a envoyé pour guérir ceux qui ont le cœur brisé, pour proclamer aux captifs la liberté, et aux prisonniers la délivrance.", priere:"Merci pour la liberté que tu offres. Je reçois ta délivrance aujourd'hui.", explication:"La délivrance promise par Dieu touche précisément les blessures les plus profondes et les plus intimes." },
+    { ref:"Psaume 34:18", texte:"L'Éternel est près de ceux qui ont le cœur brisé, et il sauve ceux qui ont l'esprit dans l'abattement.", priere:"Merci d'être proche de moi précisément là où j'ai mal.", explication:"Dieu se rapproche particulièrement de ceux dont le cœur est brisé — la proximité, pas la distance, caractérise sa réponse." },
+    { ref:"Jérémie 30:17", texte:"Mais je te guérirai, je panserai tes plaies, dit l'Éternel.", priere:"Je reçois ta guérison aujourd'hui, Seigneur, à mon rythme.", explication:"La guérison promise par Dieu peut être reçue progressivement, à son propre rythme, sans pression." },
+    { ref:"Ésaïe 53:5", texte:"Mais il était blessé pour nos péchés, brisé pour nos iniquités ; le châtiment qui nous donne la paix est tombé sur lui, et c'est par ses meurtrissures que nous sommes guéris.", priere:"Merci Jésus d'avoir porté ce que je ne pouvais pas porter seule.", explication:"Les blessures les plus profondes ont déjà été portées par Jésus à la croix, pour que la guérison soit possible." },
+    { ref:"Ésaïe 40:29", texte:"Il donne de la force à celui qui est fatigué, et il augmente la vigueur de celui qui tombe en défaillance.", priere:"Seigneur, renouvelle mes forces aujourd'hui, là où je suis fatiguée.", explication:"Même quand les forces manquent, Dieu a la capacité de renouveler la vigueur de celui qui est épuisé." },
+    { ref:"Psaume 73:26", texte:"Ma chair et mon cœur peuvent se consumer : Dieu sera toujours le rocher de mon cœur et mon partage.", priere:"Merci d'être mon rocher, même quand tout le reste vacille.", explication:"Quand tout le reste semble vaciller, Dieu reste le point stable et fiable du cœur." }
+  ], joursAlt:[
+    { ref:"Psaume 30:5", texte:"Le soir arrivent les pleurs, et le matin l'allégresse.", priere:"Merci que la joie revient, même après une nuit de larmes.", explication:"La douleur n'a pas le dernier mot : Dieu promet que la joie revient, même après une longue nuit." },
+    { ref:"2 Corinthiens 1:3", texte:"le Père des miséricordes et le Dieu de toute consolation, qui nous console dans toutes nos afflictions.", priere:"Merci d'être le Dieu qui console dans toute affliction.", explication:"Dieu console non pour que l'on garde cette consolation pour soi, mais pour consoler ensuite les autres à notre tour." },
+    { ref:"Psaume 55:22", texte:"Remets ton sort à l'Éternel, et il te soutiendra.", priere:"Je remets mon sort entre tes mains aujourd'hui, Seigneur.", explication:"Remettre son fardeau à Dieu, plutôt que de le porter seul, ouvre la porte à son soutien réel." },
+    { ref:"Ésaïe 43:2", texte:"Si tu traverses les eaux, je serai avec toi ; et les fleuves, ils ne te submergeront point.", priere:"Merci d'être avec moi à travers les épreuves qui me submergent.", explication:"La promesse de Dieu n'est pas d'éviter les épreuves, mais d'être présent au milieu d'elles." },
+    { ref:"Psaume 42:11", texte:"Pourquoi t'abats-tu, mon âme ? Espère en Dieu, car je le louerai encore ; il est mon salut et mon Dieu.", priere:"Aide mon âme à espérer en toi aujourd'hui, malgré tout.", explication:"Parler à sa propre âme pour l'orienter vers l'espérance en Dieu est une démarche active, pas passive." },
+    { ref:"Ésaïe 41:10", texte:"Ne crains rien, car je suis avec toi... je te fortifie, je viens à ton secours.", priere:"Merci de me fortifier et de venir à mon secours.", explication:"La peur peut être remplacée par la force que Dieu promet à ceux qu'il soutient personnellement." },
+    { ref:"Romains 8:28", texte:"Nous savons que toutes choses concourent au bien de ceux qui aiment Dieu, de ceux qui sont appelés selon son dessein.", priere:"Merci que tu fais concourir toutes choses à mon bien.", explication:"Même les circonstances douloureuses peuvent, avec le temps, être intégrées dans un bien plus grand que Dieu prépare." }
   ]},
   { id:'amis', titre:"Les amis", jours:[
-    { ref:"Proverbes 17:17", texte:"L'ami aime en tout temps, et dans le malheur il se montre un frère.", priere:"Merci Seigneur pour les amis fidèles que tu places sur ma route." },
-    { ref:"Ecclésiaste 4:9-10", texte:"Deux valent mieux qu'un, parce qu'ils retirent un bon salaire de leur travail. Car, s'ils tombent, l'un relèvera son compagnon ; mais malheur à celui qui est seul et qui tombe, sans avoir un second pour le relever !", priere:"Aide-moi à être une amie qui relève, et à accepter d'être relevée aussi." },
-    { ref:"Jean 15:13", texte:"Il n'y a pas de plus grand amour que de donner sa vie pour ses amis.", priere:"Merci Jésus pour ton amitié qui va jusqu'au don total." },
-    { ref:"Proverbes 18:24", texte:"Celui qui a des amis doit se montrer ami, et il y a tel ami plus attaché qu'un frère.", priere:"Apprends-moi à être une amie présente et fidèle aujourd'hui." },
-    { ref:"1 Samuel 18:1", texte:"L'âme de Jonathan s'attacha à l'âme de David, et Jonathan l'aima comme son âme.", priere:"Merci pour les amitiés profondes. Fortifie celles que je vis aujourd'hui." },
-    { ref:"Proverbes 27:6", texte:"Les blessures d'un ami prouvent sa fidélité, mais les baisers d'un ennemi sont trompeurs.", priere:"Aide-moi à accueillir la vérité venant d'une amie sincère, même quand elle dérange." },
-    { ref:"Romains 1:12", texte:"c'est-à-dire, que nous nous consolions mutuellement par la foi qui nous est commune, à vous et à moi.", priere:"Merci pour les amies avec qui je peux partager ma foi et être encouragée." }
+    { ref:"Proverbes 17:17", texte:"L'ami aime en tout temps, et dans le malheur il se montre un frère.", priere:"Merci Seigneur pour les amis fidèles que tu places sur ma route.", explication:"Un ami fidèle ne se retire pas dans les moments difficiles : c'est justement là qu'il se révèle vraiment." },
+    { ref:"Ecclésiaste 4:9-10", texte:"Deux valent mieux qu'un, parce qu'ils retirent un bon salaire de leur travail. Car, s'ils tombent, l'un relèvera son compagnon ; mais malheur à celui qui est seul et qui tombe, sans avoir un second pour le relever !", priere:"Aide-moi à être une amie qui relève, et à accepter d'être relevée aussi.", explication:"Être accompagné rend plus fort face aux chutes — la solitude, elle, laisse sans soutien pour se relever." },
+    { ref:"Jean 15:13", texte:"Il n'y a pas de plus grand amour que de donner sa vie pour ses amis.", priere:"Merci Jésus pour ton amitié qui va jusqu'au don total.", explication:"Le plus grand amour se mesure à ce qu'on est prêt à donner pour ceux qu'on aime, à l'image de Jésus." },
+    { ref:"Proverbes 18:24", texte:"Celui qui a des amis doit se montrer ami, et il y a tel ami plus attaché qu'un frère.", priere:"Apprends-moi à être une amie présente et fidèle aujourd'hui.", explication:"Pour avoir de vrais amis, il faut d'abord soi-même se montrer digne d'amitié et présent pour les autres." },
+    { ref:"1 Samuel 18:1", texte:"L'âme de Jonathan s'attacha à l'âme de David, et Jonathan l'aima comme son âme.", priere:"Merci pour les amitiés profondes. Fortifie celles que je vis aujourd'hui.", explication:"Une amitié profonde, comme celle de David et Jonathan, se construit sur un attachement sincère, pas superficiel." },
+    { ref:"Proverbes 27:6", texte:"Les blessures d'un ami prouvent sa fidélité, mais les baisers d'un ennemi sont trompeurs.", priere:"Aide-moi à accueillir la vérité venant d'une amie sincère, même quand elle dérange.", explication:"Une remarque honnête venant d'un ami sincère, même si elle dérange, vaut mieux qu'un compliment sans vérité." },
+    { ref:"Romains 1:12", texte:"c'est-à-dire, que nous nous consolions mutuellement par la foi qui nous est commune, à vous et à moi.", priere:"Merci pour les amies avec qui je peux partager ma foi et être encouragée.", explication:"Partager sa foi avec des amis proches devient une source mutuelle d'encouragement et de consolation." }
+  ], joursAlt:[
+    { ref:"Proverbes 12:26", texte:"Le juste montre à son ami la bonne voie, mais la voie des méchants les égare.", priere:"Aide-moi à montrer le bon chemin à mes amies, avec douceur.", explication:"Un véritable ami oriente vers ce qui est juste, plutôt que de simplement approuver tout ce que l'on fait." },
+    { ref:"Proverbes 16:28", texte:"L'homme pervers excite des querelles, et le rapporteur divise les amis.", priere:"Garde-moi de semer la division parmi mes amies, Seigneur.", explication:"Les paroles rapportées avec malveillance peuvent briser des amitiés qui semblaient solides." },
+    { ref:"Ecclésiaste 4:12", texte:"Si quelqu'un est plus fort qu'un seul, les deux peuvent lui résister ; et la corde à trois fils ne se rompt pas facilement.", priere:"Merci pour la force que je trouve en étant bien entourée.", explication:"Être entouré rend plus résistant face aux difficultés — seul, on est plus vulnérable." },
+    { ref:"Jean 15:15", texte:"Je ne vous appelle plus serviteurs... mais je vous ai appelés amis, parce que je vous ai fait connaître tout ce que j'ai appris de mon Père.", priere:"Merci de m'appeler ton amie, Seigneur, pas seulement ta servante.", explication:"Jésus élève ses disciples au rang d'amis, en partageant avec eux ce qu'il connaît du Père." },
+    { ref:"Proverbes 13:20", texte:"Celui qui fréquente les sages devient sage, mais celui qui se plaît avec les insensés s'en trouve mal.", priere:"Aide-moi à choisir des fréquentations qui me rendent meilleure.", explication:"Les fréquentations choisies influencent réellement le caractère, en bien comme en mal." },
+    { ref:"Romains 12:15", texte:"Réjouissez-vous avec ceux qui se réjouissent ; pleurez avec ceux qui pleurent.", priere:"Aide-moi à me réjouir et à pleurer avec mes amies, selon ce qu'elles vivent.", explication:"Partager les joies et les peines de ses amies fait partie du soutien mutuel véritable." },
+    { ref:"Proverbes 11:14", texte:"...le salut est dans le grand nombre des conseillers.", priere:"Merci pour les bons conseils que tu m'envoies à travers mes amies.", explication:"De bons conseillers autour de soi augmentent les chances de prendre de bonnes décisions." }
   ]},
   { id:'relations-sociales', titre:"Les relations sociales", jours:[
-    { ref:"Romains 12:18", texte:"S'il est possible, autant que cela dépend de vous, soyez en paix avec tous les hommes.", priere:"Aide-moi à rechercher la paix dans mes relations aujourd'hui." },
-    { ref:"Romains 12:10", texte:"Par amour fraternel, soyez pleins d'affection les uns pour les autres ; par honneur, usez de prévenances réciproques.", priere:"Donne-moi un cœur attentif et honorant envers les autres aujourd'hui." },
-    { ref:"Colossiens 3:13", texte:"Supportez-vous les uns les autres, et, si l'un a sujet de se plaindre de l'autre, pardonnez-vous réciproquement. De même que Christ vous a pardonné, pardonnez-vous aussi.", priere:"Seigneur, aide-moi à pardonner comme tu m'as pardonnée." },
-    { ref:"Proverbes 27:9", texte:"L'huile et les parfums réjouissent le cœur, et les conseils affectueux d'un ami sont doux.", priere:"Merci pour les bons conseils reçus. Rends-moi aussi source d'encouragement pour les autres." },
-    { ref:"Hébreux 10:24-25", texte:"Veillons les uns sur les autres, pour nous exciter à la charité et aux bonnes œuvres. N'abandonnons pas notre assemblée, comme c'est la coutume de quelques-uns ; mais exhortons-nous réciproquement.", priere:"Aide-moi à rester connectée à une communauté qui m'encourage dans la foi." },
-    { ref:"1 Pierre 4:9", texte:"Exercez l'hospitalité les uns envers les autres, sans murmures.", priere:"Donne-moi un cœur accueillant envers les autres aujourd'hui, sans arrière-pensée." },
-    { ref:"Galates 6:2", texte:"Portez les fardeaux les uns des autres, et vous accomplirez ainsi la loi de Christ.", priere:"Aide-moi à porter le fardeau de quelqu'un aujourd'hui, avec amour." }
+    { ref:"Romains 12:18", texte:"S'il est possible, autant que cela dépend de vous, soyez en paix avec tous les hommes.", priere:"Aide-moi à rechercher la paix dans mes relations aujourd'hui.", explication:"Rechercher la paix avec les autres est une responsabilité qui dépend d'abord de notre propre attitude." },
+    { ref:"Romains 12:10", texte:"Par amour fraternel, soyez pleins d'affection les uns pour les autres ; par honneur, usez de prévenances réciproques.", priere:"Donne-moi un cœur attentif et honorant envers les autres aujourd'hui.", explication:"L'affection sincère et l'honneur mutuel donnent aux relations une qualité qui dépasse la simple politesse." },
+    { ref:"Colossiens 3:13", texte:"Supportez-vous les uns les autres, et, si l'un a sujet de se plaindre de l'autre, pardonnez-vous réciproquement. De même que Christ vous a pardonné, pardonnez-vous aussi.", priere:"Seigneur, aide-moi à pardonner comme tu m'as pardonnée.", explication:"Pardonner comme Christ a pardonné reste le fondement le plus solide pour préserver des relations abîmées." },
+    { ref:"Proverbes 27:9", texte:"L'huile et les parfums réjouissent le cœur, et les conseils affectueux d'un ami sont doux.", priere:"Merci pour les bons conseils reçus. Rends-moi aussi source d'encouragement pour les autres.", explication:"Un bon conseil donné avec affection réjouit le cœur autant qu'un parfum agréable." },
+    { ref:"Hébreux 10:24-25", texte:"Veillons les uns sur les autres, pour nous exciter à la charité et aux bonnes œuvres. N'abandonnons pas notre assemblée, comme c'est la coutume de quelques-uns ; mais exhortons-nous réciproquement.", priere:"Aide-moi à rester connectée à une communauté qui m'encourage dans la foi.", explication:"Rester connecté à une communauté qui encourage protège de l'isolement spirituel et humain." },
+    { ref:"1 Pierre 4:9", texte:"Exercez l'hospitalité les uns envers les autres, sans murmures.", priere:"Donne-moi un cœur accueillant envers les autres aujourd'hui, sans arrière-pensée.", explication:"L'hospitalité offerte sans arrière-pensée ni murmure reflète un cœur généreux, pas contraint." },
+    { ref:"Galates 6:2", texte:"Portez les fardeaux les uns des autres, et vous accomplirez ainsi la loi de Christ.", priere:"Aide-moi à porter le fardeau de quelqu'un aujourd'hui, avec amour.", explication:"Porter les fardeaux les uns des autres traduit concrètement la loi d'amour de Christ dans les relations quotidiennes." }
+  ], joursAlt:[
+    { ref:"Matthieu 5:9", texte:"Heureux ceux qui procurent la paix, car ils seront appelés fils de Dieu !", priere:"Aide-moi à être une actrice de paix aujourd'hui, dans mes relations.", explication:"Être un artisan de paix, et pas seulement l'accepter, est ce qui identifie un enfant de Dieu." },
+    { ref:"Proverbes 15:1", texte:"Une réponse douce calme la fureur, mais une parole dure excite la colère.", priere:"Donne-moi une parole douce plutôt que dure aujourd'hui.", explication:"Le ton employé dans une réponse peut désamorcer ou au contraire enflammer un conflit." },
+    { ref:"Jacques 1:19", texte:"que tout homme soit prompt à écouter, lent à parler, lent à se mettre en colère.", priere:"Aide-moi à écouter davantage et à parler moins vite.", explication:"Écouter avant de parler évite bien des tensions inutiles dans les relations." },
+    { ref:"Romains 15:7", texte:"Accueillez-vous donc les uns les autres, comme Christ vous a accueillis, pour la gloire de Dieu.", priere:"Aide-moi à accueillir les autres comme tu m'as accueillie.", explication:"Accueillir les autres à l'image de l'accueil reçu de Christ élève la qualité des relations." },
+    { ref:"Philippiens 2:3", texte:"Ne faites rien par esprit de parti ou par vaine gloire, mais que l'humilité vous fasse regarder les autres comme étant au-dessus de vous-mêmes.", priere:"Donne-moi un cœur humble envers les autres aujourd'hui.", explication:"Considérer les autres avec humilité change la dynamique de toute relation sociale." },
+    { ref:"Proverbes 25:17", texte:"Mets rarement le pied dans la maison de ton prochain, de peur qu'il ne soit rassasié de toi et ne te haïsse.", priere:"Apprends-moi la juste mesure dans mes relations, Seigneur.", explication:"Même les bonnes relations ont besoin d'espace pour rester saines et équilibrées." },
+    { ref:"Marc 12:31", texte:"Voici le second : Tu aimeras ton prochain comme toi-même. Il n'y a pas d'autre commandement plus grand que ceux-là.", priere:"Aide-moi à aimer mon prochain comme moi-même aujourd'hui.", explication:"Aimer son prochain comme soi-même reste, selon Jésus, l'un des commandements les plus importants." }
   ]},
   { id:'relations-sexuelles', titre:"Les relations conjugales", jours:[
-    { ref:"Hébreux 13:4", texte:"Le mariage est honorable en tous, et le lit conjugal sans souillure, car Dieu jugera les impudiques et les adultères.", priere:"Seigneur, aide-moi à honorer ce que tu as institué comme saint." },
-    { ref:"Cantique des Cantiques 8:6", texte:"Mets-moi comme un sceau sur ton cœur, comme un sceau sur ton bras ; car l'amour est fort comme la mort, la jalousie est inflexible comme le séjour des morts ; ses ardeurs sont des ardeurs de feu, une flamme de l'Éternel.", priere:"Merci pour la force et la beauté de l'amour que tu as créé." },
-    { ref:"Genèse 2:24", texte:"C'est pourquoi l'homme quittera son père et sa mère, et s'attachera à sa femme, et ils deviendront une seule chair.", priere:"Seigneur, fortifie l'union et l'intimité dans mon couple." },
-    { ref:"1 Corinthiens 7:3", texte:"Que le mari rende à sa femme l'affection qui lui est due, et que la femme agisse de même envers son mari.", priere:"Seigneur, aide-nous à nous donner l'un à l'autre avec amour et attention." },
-    { ref:"1 Thessaloniciens 4:3-4", texte:"Ce que Dieu veut, c'est votre sanctification ; c'est que vous vous absteniez de l'impudicité ; c'est que chacun de vous sache posséder son corps avec sainteté et honnêteté.", priere:"Seigneur, garde mon cœur et mon corps dans la sainteté que tu désires pour moi." },
-    { ref:"Proverbes 18:22", texte:"Celui qui trouve une femme trouve le bonheur ; c'est une grâce qu'il obtient de l'Éternel.", priere:"Merci Seigneur pour la grâce du mariage et de l'union que tu bénis." },
-    { ref:"Colossiens 3:14", texte:"Mais par-dessus toutes ces choses revêtez-vous de la charité, qui est le lien de la perfection.", priere:"Que l'amour reste le lien qui unit mon couple, par-dessus tout le reste." }
+    { ref:"Hébreux 13:4", texte:"Le mariage est honorable en tous, et le lit conjugal sans souillure, car Dieu jugera les impudiques et les adultères.", priere:"Seigneur, aide-moi à honorer ce que tu as institué comme saint.", explication:"Le mariage et l'intimité conjugale sont présentés par Dieu comme honorables, pas comme un sujet à minimiser ou à cacher." },
+    { ref:"Cantique des Cantiques 8:6", texte:"Mets-moi comme un sceau sur ton cœur, comme un sceau sur ton bras ; car l'amour est fort comme la mort, la jalousie est inflexible comme le séjour des morts ; ses ardeurs sont des ardeurs de feu, une flamme de l'Éternel.", priere:"Merci pour la force et la beauté de l'amour que tu as créé.", explication:"L'amour conjugal décrit ici est intense et durable, comparé à une flamme que rien ne peut éteindre facilement." },
+    { ref:"Genèse 2:24", texte:"C'est pourquoi l'homme quittera son père et sa mère, et s'attachera à sa femme, et ils deviendront une seule chair.", priere:"Seigneur, fortifie l'union et l'intimité dans mon couple.", explication:"L'union entre mari et femme est voulue par Dieu dès la création, comme un attachement profond et exclusif." },
+    { ref:"1 Corinthiens 7:3", texte:"Que le mari rende à sa femme l'affection qui lui est due, et que la femme agisse de même envers son mari.", priere:"Seigneur, aide-nous à nous donner l'un à l'autre avec amour et attention.", explication:"Dans le couple, l'attention à l'autre doit être mutuelle, sans déséquilibre d'un côté ou de l'autre." },
+    { ref:"1 Thessaloniciens 4:3-4", texte:"Ce que Dieu veut, c'est votre sanctification ; c'est que vous vous absteniez de l'impudicité ; c'est que chacun de vous sache posséder son corps avec sainteté et honnêteté.", priere:"Seigneur, garde mon cœur et mon corps dans la sainteté que tu désires pour moi.", explication:"La sainteté voulue par Dieu pour le corps concerne aussi la vie intime, vécue avec honnêteté et respect." },
+    { ref:"Proverbes 18:22", texte:"Celui qui trouve une femme trouve le bonheur ; c'est une grâce qu'il obtient de l'Éternel.", priere:"Merci Seigneur pour la grâce du mariage et de l'union que tu bénis.", explication:"Trouver un conjoint est présenté comme une grâce reçue de Dieu, pas seulement le fruit du hasard." },
+    { ref:"Colossiens 3:14", texte:"Mais par-dessus toutes ces choses revêtez-vous de la charité, qui est le lien de la perfection.", priere:"Que l'amour reste le lien qui unit mon couple, par-dessus tout le reste.", explication:"Au-dessus de tout le reste, c'est l'amour qui garde l'union du couple solide et complète." }
+  ], joursAlt:[
+    { ref:"1 Corinthiens 7:4", texte:"La femme n'a pas autorité sur son propre corps, mais c'est le mari ; et pareillement, le mari n'a pas autorité sur son propre corps, mais c'est la femme.", priere:"Aide-nous à nous donner l'un à l'autre avec amour et respect.", explication:"L'intimité conjugale implique une considération mutuelle, ni domination ni négligence d'un côté." },
+    { ref:"Proverbes 5:18", texte:"Que ta source soit bénie, et fais ta joie de la femme de ta jeunesse.", priere:"Merci pour la joie et la bénédiction de l'union conjugale.", explication:"Trouver sa joie dans son conjoint est présenté positivement, pas comme un sujet à éviter." },
+    { ref:"Marc 10:9", texte:"Que l'homme ne sépare donc pas ce que Dieu a joint.", priere:"Garde notre union, Seigneur, unie et fidèle.", explication:"L'union voulue par Dieu dans le mariage n'est pas destinée à être brisée facilement." },
+    { ref:"Éphésiens 5:33", texte:"que chacun de vous aime sa femme comme lui-même, et que la femme respecte son mari.", priere:"Aide-nous à nous aimer et à nous respecter mutuellement.", explication:"L'amour et le respect mutuels forment la base solide d'une relation conjugale durable." },
+    { ref:"1 Pierre 3:7", texte:"Maris, montrez à votre tour de la sagesse dans vos rapports avec vos femmes ; honorez-les.", priere:"Donne-nous la sagesse pour honorer notre relation, Seigneur.", explication:"Traiter son conjoint avec honneur et sagesse fait partie de l'appel à vivre le mariage selon Dieu." },
+    { ref:"Cantique des Cantiques 4:9", texte:"Tu me ravis le cœur, ma sœur, ma fiancée, tu me ravis le cœur par l'un de tes regards.", priere:"Merci pour la beauté de l'amour que tu as créé dans le couple.", explication:"La beauté et l'attirance dans le couple sont célébrées, pas cachées, dans les Écritures." },
+    { ref:"1 Thessaloniciens 4:7", texte:"Car Dieu ne nous a pas appelés à l'impureté, mais à la sanctification.", priere:"Garde notre couple dans la sanctification que tu désires.", explication:"La sainteté voulue par Dieu concerne aussi la vie intime, vécue avec engagement et fidélité." }
   ]},
   { id:'famille', titre:"La famille", jours:[
-    { ref:"Josué 24:15", texte:"quant à moi et à ma maison, nous servirons l'Éternel.", priere:"Seigneur, je choisis aujourd'hui de servir avec ma famille." },
-    { ref:"Psaume 127:1", texte:"Si l'Éternel ne bâtit la maison, ceux qui la bâtissent travaillent en vain.", priere:"Bâtis toi-même ma maison, Seigneur, je te confie ma famille." },
-    { ref:"Éphésiens 5:25", texte:"Maris, aimez vos femmes, comme Christ a aimé l'Église, et s'est livré lui-même pour elle.", priere:"Seigneur, que l'amour dans ma famille reflète le tien." },
-    { ref:"Éphésiens 6:1-3", texte:"Enfants, obéissez à vos parents, selon le Seigneur, car cela est juste. Honore ton père et ta mère... afin que tu sois heureux et que tu vives longtemps sur la terre.", priere:"Merci pour tes promesses sur ma famille. Aide-nous à nous honorer les uns les autres." },
-    { ref:"Proverbes 24:3-4", texte:"C'est par la sagesse qu'une maison s'élève, et par l'intelligence qu'elle s'affermit ; c'est par la science que les chambres se remplissent de tous les biens précieux et agréables.", priere:"Donne-moi la sagesse pour bâtir un foyer stable et paisible." },
-    { ref:"Genèse 18:19", texte:"Car je l'ai choisi, afin qu'il ordonne à ses fils et à sa maison après lui de garder la voie de l'Éternel, en pratiquant la droiture et la justice.", priere:"Seigneur, aide-moi à transmettre ta voie à ma famille par mon exemple." },
-    { ref:"1 Timothée 5:8", texte:"Si quelqu'un n'a pas soin des siens, et principalement de ceux de sa famille, il a renié la foi, et il est pire qu'un infidèle.", priere:"Donne-moi le cœur pour prendre soin des miens avec fidélité." }
+    { ref:"Josué 24:15", texte:"quant à moi et à ma maison, nous servirons l'Éternel.", priere:"Seigneur, je choisis aujourd'hui de servir avec ma famille.", explication:"Choisir de servir Dieu en famille est une décision à assumer, pas seulement un souhait individuel." },
+    { ref:"Psaume 127:1", texte:"Si l'Éternel ne bâtit la maison, ceux qui la bâtissent travaillent en vain.", priere:"Bâtis toi-même ma maison, Seigneur, je te confie ma famille.", explication:"Une maison construite sans que Dieu y participe reste fragile, quels que soient les efforts fournis." },
+    { ref:"Éphésiens 5:25", texte:"Maris, aimez vos femmes, comme Christ a aimé l'Église, et s'est livré lui-même pour elle.", priere:"Seigneur, que l'amour dans ma famille reflète le tien.", explication:"L'amour attendu dans le couple se mesure au don total que Christ a fait pour l'Église." },
+    { ref:"Éphésiens 6:1-3", texte:"Enfants, obéissez à vos parents, selon le Seigneur, car cela est juste. Honore ton père et ta mère... afin que tu sois heureux et que tu vives longtemps sur la terre.", priere:"Merci pour tes promesses sur ma famille. Aide-nous à nous honorer les uns les autres.", explication:"Honorer ses parents porte une promesse concrète de bien-être, pas seulement un devoir moral." },
+    { ref:"Proverbes 24:3-4", texte:"C'est par la sagesse qu'une maison s'élève, et par l'intelligence qu'elle s'affermit ; c'est par la science que les chambres se remplissent de tous les biens précieux et agréables.", priere:"Donne-moi la sagesse pour bâtir un foyer stable et paisible.", explication:"La sagesse et l'intelligence, pas seulement les moyens matériels, sont ce qui bâtit vraiment un foyer stable." },
+    { ref:"Genèse 18:19", texte:"Car je l'ai choisi, afin qu'il ordonne à ses fils et à sa maison après lui de garder la voie de l'Éternel, en pratiquant la droiture et la justice.", priere:"Seigneur, aide-moi à transmettre ta voie à ma famille par mon exemple.", explication:"Transmettre le chemin de Dieu à sa famille par l'exemple compte parmi les responsabilités les plus importantes." },
+    { ref:"1 Timothée 5:8", texte:"Si quelqu'un n'a pas soin des siens, et principalement de ceux de sa famille, il a renié la foi, et il est pire qu'un infidèle.", priere:"Donne-moi le cœur pour prendre soin des miens avec fidélité.", explication:"Prendre soin des siens est présenté comme une expression concrète et non négociable de la foi." }
+  ], joursAlt:[
+    { ref:"Malachie 4:6", texte:"Il ramènera le cœur des pères à leurs enfants, et le cœur des enfants à leurs pères.", priere:"Réconcilie les cœurs dans ma famille, Seigneur, les uns vers les autres.", explication:"La réconciliation entre générations est une œuvre que Dieu promet d'accomplir dans les familles." },
+    { ref:"Psaume 133:1", texte:"Voici, oh ! qu'il est agréable, qu'il est doux pour des frères de demeurer ensemble !", priere:"Merci pour la douceur de vivre unis en famille.", explication:"Vivre dans l'unité familiale est décrit comme une chose belle et agréable à vivre." },
+    { ref:"Proverbes 15:20", texte:"Un fils sage fait la joie de son père, et un homme insensé méprise sa mère.", priere:"Que la sagesse guide mes enfants, pour la joie de notre famille.", explication:"Les choix de vie des enfants ont un impact direct sur la joie ou la peine des parents." },
+    { ref:"Ruth 1:16", texte:"ton peuple sera mon peuple, et ton Dieu sera mon Dieu.", priere:"Aide-moi à m'attacher fidèlement à ceux que tu m'as donnés comme famille.", explication:"Un attachement loyal, même en dehors des liens du sang, peut refléter une vraie fidélité familiale." },
+    { ref:"Éphésiens 3:15", texte:"le Père, duquel toute famille dans les cieux et sur la terre reçoit son nom.", priere:"Merci que toute famille tire son identité de toi, Père.", explication:"Toute famille, où qu'elle soit, trouve son origine et son identité dans le Père céleste." },
+    { ref:"Proverbes 14:1", texte:"La femme sage bâtit sa maison, et la femme insensée la renverse de ses propres mains.", priere:"Aide-moi à bâtir ma maison avec sagesse, pas à la démolir.", explication:"Les décisions quotidiennes d'un parent peuvent bâtir ou fragiliser tout un foyer." },
+    { ref:"Psaume 128:3", texte:"Ta femme est comme une vigne féconde dans l'intérieur de ta maison ; tes fils sont comme des plants d'olivier, autour de ta table.", priere:"Merci pour la fécondité et la joie que tu places dans mon foyer.", explication:"Une famille peut être décrite comme fructueuse et joyeuse, à l'image d'une vigne ou d'oliviers autour de la table." }
   ]},
   { id:'projets', titre:"Les projets", jours:[
-    { ref:"Proverbes 16:3", texte:"Recommande à l'Éternel tes œuvres, et tes projets réussiront.", priere:"Seigneur, je te confie mes projets aujourd'hui." },
-    { ref:"Proverbes 16:9", texte:"Le cœur de l'homme médite sa voie, mais c'est l'Éternel qui dirige ses pas.", priere:"Dirige mes pas, Seigneur, même quand je fais mes propres plans." },
-    { ref:"Jacques 4:15", texte:"Vous devriez dire, au contraire : Si Dieu le veut, nous vivrons, et nous ferons ceci ou cela.", priere:"Que ta volonté guide mes projets, plus que mes envies." },
-    { ref:"Psaume 20:4-5", texte:"Qu'il te donne ce que ton cœur désire, et qu'il accomplisse tous tes desseins !", priere:"Merci de t'intéresser à mes désirs. J'attends l'accomplissement de tes promesses." },
-    { ref:"Proverbes 21:5", texte:"Les projets de l'homme diligent ne mènent qu'à l'abondance, mais celui qui agit avec précipitation n'arrive qu'à la disette.", priere:"Aide-moi à avancer dans mes projets avec constance, sans précipitation." },
-    { ref:"Proverbes 15:22", texte:"Les projets échouent, faute d'une assemblée qui délibère ; mais ils réussissent quand il y a de nombreux conseillers.", priere:"Seigneur, entoure-moi de bons conseils pour mes projets." },
-    { ref:"Psaume 37:5", texte:"Recommande ton sort à l'Éternel, mets en lui ta confiance, et il agira.", priere:"Je te remets mes projets aujourd'hui, Seigneur, avec confiance." }
+    { ref:"Proverbes 16:3", texte:"Recommande à l'Éternel tes œuvres, et tes projets réussiront.", priere:"Seigneur, je te confie mes projets aujourd'hui.", explication:"Confier ses projets à Dieu avant de les lancer change la façon dont on avance vers leur réalisation." },
+    { ref:"Proverbes 16:9", texte:"Le cœur de l'homme médite sa voie, mais c'est l'Éternel qui dirige ses pas.", priere:"Dirige mes pas, Seigneur, même quand je fais mes propres plans.", explication:"On peut planifier ses pas, mais c'est finalement Dieu qui en dirige le déroulement réel." },
+    { ref:"Jacques 4:15", texte:"Vous devriez dire, au contraire : Si Dieu le veut, nous vivrons, et nous ferons ceci ou cela.", priere:"Que ta volonté guide mes projets, plus que mes envies.", explication:"Reconnaître la volonté de Dieu au-dessus de ses propres plans garde une juste humilité dans les projets." },
+    { ref:"Psaume 20:4-5", texte:"Qu'il te donne ce que ton cœur désire, et qu'il accomplisse tous tes desseins !", priere:"Merci de t'intéresser à mes désirs. J'attends l'accomplissement de tes promesses.", explication:"Dieu s'intéresse réellement aux désirs profonds du cœur, pas seulement aux besoins essentiels." },
+    { ref:"Proverbes 21:5", texte:"Les projets de l'homme diligent ne mènent qu'à l'abondance, mais celui qui agit avec précipitation n'arrive qu'à la disette.", priere:"Aide-moi à avancer dans mes projets avec constance, sans précipitation.", explication:"La constance et la diligence portent plus de fruit dans un projet que la précipitation." },
+    { ref:"Proverbes 15:22", texte:"Les projets échouent, faute d'une assemblée qui délibère ; mais ils réussissent quand il y a de nombreux conseillers.", priere:"Seigneur, entoure-moi de bons conseils pour mes projets.", explication:"S'entourer de bons conseils augmente concrètement les chances de réussite d'un projet." },
+    { ref:"Psaume 37:5", texte:"Recommande ton sort à l'Éternel, mets en lui ta confiance, et il agira.", priere:"Je te remets mes projets aujourd'hui, Seigneur, avec confiance.", explication:"Remettre son avenir entre les mains de Dieu, avec confiance, laisse la place à son action." }
+  ], joursAlt:[
+    { ref:"Ecclésiaste 3:1", texte:"Il y a un temps pour toute chose, et un temps pour toute chose sous les cieux.", priere:"Aide-moi à reconnaître le bon moment pour chaque chose, Seigneur.", explication:"Chaque projet a son propre temps : la patience de reconnaître ce moment évite bien des frustrations." },
+    { ref:"Habacuc 2:3", texte:"Si elle tarde, attends-la, car elle s'accomplira, elle s'accomplira certainement.", priere:"Merci que tes promesses s'accompliront, même si elles tardent.", explication:"Un projet qui tarde à se réaliser n'est pas nécessairement un projet abandonné par Dieu." },
+    { ref:"Proverbes 3:5", texte:"Confie-toi en l'Éternel de tout ton cœur, et ne t'appuie pas sur ta sagesse.", priere:"Je me confie en toi de tout mon cœur pour mes projets.", explication:"Faire confiance à Dieu plutôt qu'à sa propre sagesse rend les chemins plus clairs, pas plus faciles." },
+    { ref:"Éphésiens 3:20", texte:"à celui qui peut faire, par la puissance qui agit en nous, infiniment au-delà de tout ce que nous demandons ou pensons.", priere:"Merci de pouvoir faire infiniment plus que ce que je demande ou pense.", explication:"Dieu peut accomplir bien plus que ce qu'on ose lui demander ou même imaginer." },
+    { ref:"Zacharie 4:10", texte:"Car ceux qui méprisaient le jour des faibles commencements se réjouiront.", priere:"Aide-moi à ne pas mépriser les petits commencements de mes projets.", explication:"Les débuts modestes d'un projet ne doivent pas être méprisés : ils annoncent souvent une suite plus grande." },
+    { ref:"Proverbes 27:1", texte:"Ne te vante pas du lendemain, car tu ne sais pas ce qu'un jour peut enfanter.", priere:"Garde-moi de me vanter du lendemain, Seigneur.", explication:"L'avenir reste incertain ; s'appuyer sur Dieu plutôt que sur ses propres certitudes garde dans l'humilité." },
+    { ref:"Colossiens 3:23", texte:"Tout ce que vous faites, faites-le de bon cœur, comme pour le Seigneur et non pour des hommes.", priere:"Aide-moi à faire mon travail de bon cœur, comme pour toi.", explication:"Travailler avec sincérité, comme pour Dieu et non pour les hommes, change la motivation profonde d'un projet." }
   ]},
   { id:'finances', titre:"Les finances", jours:[
-    { ref:"Malachie 3:10", texte:"Apportez à la maison du trésor toutes les dîmes, afin qu'il y ait de la nourriture dans ma maison ; mettez-moi de la sorte à l'épreuve, dit l'Éternel des armées. Et vous verrez si je n'ouvre pas pour vous les écluses des cieux, si je ne répands pas sur vous la bénédiction en abondance.", priere:"Seigneur, aide-moi à être fidèle dans ce que tu me confies." },
-    { ref:"Philippiens 4:19", texte:"Et mon Dieu pourvoira à tous vos besoins selon sa richesse, avec gloire, en Jésus-Christ.", priere:"Merci de pourvoir à mes besoins. J'ai confiance en ta provision." },
-    { ref:"Proverbes 3:9-10", texte:"Honore l'Éternel avec tes biens, et avec les prémices de tout ton revenu : alors tes greniers seront remplis d'abondance, et tes cuves regorgeront de moût.", priere:"Aide-moi à t'honorer dans ma façon de gérer ce que je reçois." },
-    { ref:"Deutéronome 8:18", texte:"Souviens-toi de l'Éternel, ton Dieu, car c'est lui qui te donnera de la force pour les acquérir.", priere:"Merci Seigneur, c'est toi la source de tout ce que j'ai." },
-    { ref:"Luc 6:38", texte:"Donnez, et il vous sera donné : on versera dans votre sein une bonne mesure, serrée, secouée et qui déborde ; car on vous mesurera avec la mesure dont vous vous serez servis.", priere:"Apprends-moi à donner avec un cœur généreux et confiant." },
-    { ref:"Proverbes 13:11", texte:"La richesse mal acquise diminue, mais celui qui amasse peu à peu l'augmente.", priere:"Donne-moi la patience de bâtir petit à petit, honnêtement." },
-    { ref:"2 Corinthiens 9:7", texte:"Que chacun donne comme il l'a résolu en son cœur, sans tristesse ni contrainte ; car Dieu aime celui qui donne avec joie.", priere:"Seigneur, donne-moi un cœur joyeux quand je donne." }
+    { ref:"Malachie 3:10", texte:"Apportez à la maison du trésor toutes les dîmes, afin qu'il y ait de la nourriture dans ma maison ; mettez-moi de la sorte à l'épreuve, dit l'Éternel des armées. Et vous verrez si je n'ouvre pas pour vous les écluses des cieux, si je ne répands pas sur vous la bénédiction en abondance.", priere:"Seigneur, aide-moi à être fidèle dans ce que tu me confies.", explication:"Dieu invite à le mettre à l'épreuve dans la fidélité financière, avec la promesse d'une bénédiction en retour." },
+    { ref:"Philippiens 4:19", texte:"Et mon Dieu pourvoira à tous vos besoins selon sa richesse, avec gloire, en Jésus-Christ.", priere:"Merci de pourvoir à mes besoins. J'ai confiance en ta provision.", explication:"La provision de Dieu pour nos besoins ne dépend pas de nos moyens, mais de ses richesses en Christ." },
+    { ref:"Proverbes 3:9-10", texte:"Honore l'Éternel avec tes biens, et avec les prémices de tout ton revenu : alors tes greniers seront remplis d'abondance, et tes cuves regorgeront de moût.", priere:"Aide-moi à t'honorer dans ma façon de gérer ce que je reçois.", explication:"Honorer Dieu avec ce que l'on reçoit en premier reflète une confiance qui précède l'abondance, pas qui la suit." },
+    { ref:"Deutéronome 8:18", texte:"Souviens-toi de l'Éternel, ton Dieu, car c'est lui qui te donnera de la force pour les acquérir.", priere:"Merci Seigneur, c'est toi la source de tout ce que j'ai.", explication:"Se souvenir que Dieu est la source de toute capacité à générer des ressources garde d'un cœur orgueilleux." },
+    { ref:"Luc 6:38", texte:"Donnez, et il vous sera donné : on versera dans votre sein une bonne mesure, serrée, secouée et qui déborde ; car on vous mesurera avec la mesure dont vous vous serez servis.", priere:"Apprends-moi à donner avec un cœur généreux et confiant.", explication:"Donner généreusement attire en retour une mesure généreuse — le principe fonctionne dans les deux sens." },
+    { ref:"Proverbes 13:11", texte:"La richesse mal acquise diminue, mais celui qui amasse peu à peu l'augmente.", priere:"Donne-moi la patience de bâtir petit à petit, honnêtement.", explication:"Une richesse construite patiemment et honnêtement dure plus longtemps qu'une richesse acquise trop vite." },
+    { ref:"2 Corinthiens 9:7", texte:"Que chacun donne comme il l'a résolu en son cœur, sans tristesse ni contrainte ; car Dieu aime celui qui donne avec joie.", priere:"Seigneur, donne-moi un cœur joyeux quand je donne.", explication:"Le cœur avec lequel on donne compte autant que le montant donné : Dieu aime un don joyeux." }
+  ], joursAlt:[
+    { ref:"Proverbes 22:7", texte:"Le riche domine sur les pauvres, et celui qui emprunte est l'esclave de celui qui prête.", priere:"Garde-moi de l'esclavage de la dette, Seigneur.", explication:"L'endettement crée une forme de dépendance qu'il vaut mieux éviter quand c'est possible." },
+    { ref:"1 Timothée 6:10", texte:"Car l'amour de l'argent est une racine de tous les maux.", priere:"Protège mon cœur de l'amour de l'argent.", explication:"Ce n'est pas l'argent en lui-même qui pose problème, mais l'amour excessif qu'on peut lui porter." },
+    { ref:"Matthieu 6:33", texte:"Cherchez premièrement le royaume et la justice de Dieu ; et toutes ces choses vous seront données par-dessus.", priere:"Aide-moi à chercher ton royaume avant tout le reste.", explication:"Chercher Dieu en premier renverse l'ordre naturel des priorités concernant les besoins matériels." },
+    { ref:"Proverbes 11:24", texte:"Tel, qui donne libéralement, devient plus riche ; et tel, qui épargne à l'excès, ne fait que s'appauvrir.", priere:"Apprends-moi à donner avec générosité plutôt qu'à retenir avec excès.", explication:"La générosité, contrairement à l'intuition, peut enrichir plutôt qu'appauvrir sur la durée." },
+    { ref:"Hébreux 13:5", texte:"Ne vous livrez pas à l'amour de l'argent ; contentez-vous de ce que vous avez ; car Dieu lui-même a dit : Je ne te délaisserai point.", priere:"Merci de ne jamais m'abandonner, quelle que soit ma situation financière.", explication:"La présence constante de Dieu reste la vraie sécurité, plus fiable que n'importe quelle richesse." },
+    { ref:"Proverbes 21:20", texte:"De précieux trésors et de l'huile sont dans la demeure du sage ; mais l'homme insensé les engloutit.", priere:"Donne-moi la sagesse pour gérer ce que j'ai avec discernement.", explication:"La sagesse dans la gestion des ressources fait la différence entre l'abondance et le gaspillage." },
+    { ref:"2 Corinthiens 8:12", texte:"La bonne volonté, quand elle existe, est agréable en raison de ce qu'elle peut avoir, et non de ce qu'elle n'a pas.", priere:"Merci d'accepter ma bonne volonté, même quand mes moyens sont limités.", explication:"Dieu regarde la sincérité du cœur qui donne, pas seulement le montant offert." }
   ]},
   { id:'plan-de-dieu', titre:"Le plan de Dieu", jours:[
-    { ref:"Psaume 138:8", texte:"L'Éternel agira en ma faveur. Éternel, ta bonté dure toujours : n'abandonne pas les œuvres de tes mains.", priere:"Merci de ne pas abandonner ce que tu as commencé en moi." },
-    { ref:"Ésaïe 46:10", texte:"J'annonce dès le commencement ce qui doit arriver, et longtemps d'avance ce qui n'est pas encore accompli ; je dis : Mes arrêts subsisteront, et j'exécuterai toute ma volonté.", priere:"Merci que ton dessein s'accomplira, quoi qu'il arrive." },
-    { ref:"Ésaïe 55:8-9", texte:"Car mes pensées ne sont pas vos pensées, et vos voies ne sont pas mes voies, dit l'Éternel. Autant les cieux sont élevés au-dessus de la terre, autant mes voies sont élevées au-dessus de vos voies, et mes pensées au-dessus de vos pensées.", priere:"Seigneur, aide-moi à faire confiance à tes voies même quand elles dépassent les miennes." },
-    { ref:"Proverbes 19:21", texte:"Il y a dans le cœur de l'homme beaucoup de projets, mais c'est le dessein de l'Éternel qui s'accomplit.", priere:"Que ton dessein s'accomplisse dans ma vie, au-delà de mes propres plans." },
-    { ref:"Éphésiens 2:10", texte:"Car nous sommes son ouvrage, ayant été créés en Jésus-Christ pour de bonnes œuvres, que Dieu a préparées d'avance, afin que nous les pratiquions.", priere:"Merci d'avoir préparé d'avance de bonnes œuvres pour moi. Montre-les-moi aujourd'hui." },
-    { ref:"Actes 17:26", texte:"Il a fait que tous les hommes, sortis d'un seul sang, habitassent sur toute la surface de la terre, ayant déterminé la durée des temps et les bornes de leur demeure.", priere:"Merci d'avoir fixé d'avance mes temps et mes limites, Seigneur." },
-    { ref:"Psaume 33:11", texte:"Les desseins de l'Éternel subsistent à toujours, et les projets de son cœur, de génération en génération.", priere:"Merci que ton dessein tient bon, au-delà de ma propre génération." }
+    { ref:"Psaume 138:8", texte:"L'Éternel agira en ma faveur. Éternel, ta bonté dure toujours : n'abandonne pas les œuvres de tes mains.", priere:"Merci de ne pas abandonner ce que tu as commencé en moi.", explication:"Dieu ne délaisse pas ce qu'il a commencé à faire dans une vie — il continue jusqu'à l'achèvement." },
+    { ref:"Ésaïe 46:10", texte:"J'annonce dès le commencement ce qui doit arriver, et longtemps d'avance ce qui n'est pas encore accompli ; je dis : Mes arrêts subsisteront, et j'exécuterai toute ma volonté.", priere:"Merci que ton dessein s'accomplira, quoi qu'il arrive.", explication:"Ce que Dieu a décidé s'accomplit, même quand cela semble annoncé longtemps à l'avance et encore invisible." },
+    { ref:"Ésaïe 55:8-9", texte:"Car mes pensées ne sont pas vos pensées, et vos voies ne sont pas mes voies, dit l'Éternel. Autant les cieux sont élevés au-dessus de la terre, autant mes voies sont élevées au-dessus de vos voies, et mes pensées au-dessus de vos pensées.", priere:"Seigneur, aide-moi à faire confiance à tes voies même quand elles dépassent les miennes.", explication:"Les pensées et les voies de Dieu dépassent souvent notre propre logique, ce qui demande une confiance plus grande que la compréhension." },
+    { ref:"Proverbes 19:21", texte:"Il y a dans le cœur de l'homme beaucoup de projets, mais c'est le dessein de l'Éternel qui s'accomplit.", priere:"Que ton dessein s'accomplisse dans ma vie, au-delà de mes propres plans.", explication:"Malgré tous les projets que l'on peut imaginer, c'est finalement le dessein de Dieu qui se réalise." },
+    { ref:"Éphésiens 2:10", texte:"Car nous sommes son ouvrage, ayant été créés en Jésus-Christ pour de bonnes œuvres, que Dieu a préparées d'avance, afin que nous les pratiquions.", priere:"Merci d'avoir préparé d'avance de bonnes œuvres pour moi. Montre-les-moi aujourd'hui.", explication:"Chaque personne a été créée avec de bonnes œuvres déjà préparées d'avance par Dieu pour elle." },
+    { ref:"Actes 17:26", texte:"Il a fait que tous les hommes, sortis d'un seul sang, habitassent sur toute la surface de la terre, ayant déterminé la durée des temps et les bornes de leur demeure.", priere:"Merci d'avoir fixé d'avance mes temps et mes limites, Seigneur.", explication:"Dieu a fixé d'avance les temps et les circonstances de chaque vie, jusque dans leurs détails." },
+    { ref:"Psaume 33:11", texte:"Les desseins de l'Éternel subsistent à toujours, et les projets de son cœur, de génération en génération.", priere:"Merci que ton dessein tient bon, au-delà de ma propre génération.", explication:"Le dessein de Dieu ne dépend pas d'une génération : il traverse le temps sans jamais s'effondrer." }
+  ], joursAlt:[
+    { ref:"Jérémie 29:11", texte:"Car je connais les projets que j'ai formés sur vous, dit l'Éternel, projets de paix et non de malheur, afin de vous donner un avenir et de l'espérance.", priere:"Merci pour les projets de paix et d'espérance que tu as pour moi.", explication:"Les projets de Dieu pour une vie sont fondamentalement bienveillants, orientés vers l'espérance, pas le malheur." },
+    { ref:"Philippiens 1:6", texte:"Je suis persuadé que celui qui a commencé en vous cette bonne œuvre la rendra parfaite pour le jour de Jésus-Christ.", priere:"Merci de rendre parfaite l'œuvre que tu as commencée en moi.", explication:"Dieu ne laisse pas une œuvre commencée inachevée : il s'engage à la mener à son terme." },
+    { ref:"Ésaïe 14:24", texte:"L'Éternel des armées l'a juré, en disant : Ce que j'ai décidé arrivera, ce que j'ai résolu s'accomplira.", priere:"Merci que ce que tu as décidé pour ma vie s'accomplira.", explication:"Ce que Dieu a décidé se réalise, indépendamment des obstacles qui semblent s'y opposer." },
+    { ref:"Actes 2:23", texte:"livré selon le dessein arrêté et selon la prescience de Dieu.", priere:"Aide-moi à faire confiance à ton dessein, même quand je ne le comprends pas.", explication:"Le dessein de Dieu peut inclure des événements difficiles à comprendre sur le moment, mais jamais hors de son contrôle." },
+    { ref:"Job 42:2", texte:"Je reconnais que tu peux tout, et que rien ne s'oppose à tes pensées.", priere:"Merci que rien ne peut s'opposer à tes plans, Seigneur.", explication:"Reconnaître que rien n'est impossible à Dieu recentre la confiance face à l'incertitude." },
+    { ref:"Psaume 57:2", texte:"Je crie au Dieu Très-Haut, au Dieu qui agit en ma faveur.", priere:"Je crie vers toi, Seigneur, sachant que tu agis en ma faveur.", explication:"Crier vers Dieu dans la difficulté reste une démarche de foi, pas un aveu de faiblesse." },
+    { ref:"Éphésiens 1:11", texte:"ayant été prédestinés suivant la résolution de celui qui opère toutes choses d'après le conseil de sa volonté.", priere:"Merci d'opérer toutes choses selon le conseil de ta volonté.", explication:"Le plan de Dieu s'accomplit selon sa propre volonté, pas selon les circonstances apparentes." }
   ]},
   { id:'voix-de-dieu', titre:"La voix de Dieu", jours:[
-    { ref:"Jean 10:27", texte:"Mes brebis entendent ma voix ; je les connais, et elles me suivent.", priere:"Seigneur, rends mon oreille attentive à ta voix aujourd'hui." },
-    { ref:"1 Rois 19:12", texte:"Et après le tremblement de terre, un feu : l'Éternel n'était pas dans le feu. Et après le feu, un bruit doux et léger.", priere:"Aide-moi à te reconnaître dans le calme, pas seulement dans l'extraordinaire." },
-    { ref:"Ésaïe 30:21", texte:"Tes oreilles entendront derrière toi la voix qui dira : Voici le chemin, marchez-y ! lorsque vous irez à droite ou que vous irez à gauche.", priere:"Guide-moi aujourd'hui, Seigneur, dans les décisions à prendre." },
-    { ref:"Habacuc 2:1", texte:"J'étais à mon poste, et je me tenais sur la tour ; et je veillais, pour voir ce que l'Éternel me dirait, et ce que je répliquerais après ma plainte.", priere:"Apprends-moi à me tenir à l'écoute, patiemment, jusqu'à ta réponse." },
-    { ref:"Jean 16:13", texte:"Quand le consolateur sera venu, l'Esprit de vérité, il vous conduira dans toute la vérité ; car il ne parlera pas de lui-même, mais il dira tout ce qu'il aura entendu, et il vous annoncera les choses à venir.", priere:"Merci pour ton Esprit qui me conduit dans la vérité. Guide-moi aujourd'hui." },
-    { ref:"Jean 8:47", texte:"Celui qui est de Dieu, écoute les paroles de Dieu ; vous n'écoutez pas, parce que vous n'êtes pas de Dieu.", priere:"Seigneur, rends mon cœur disposé à t'écouter aujourd'hui." },
-    { ref:"Apocalypse 3:20", texte:"Voici, je me tiens à la porte, et je frappe. Si quelqu'un entend ma voix et ouvre la porte, j'entrerai chez lui, je souperai avec lui, et lui avec moi.", priere:"J'ouvre la porte aujourd'hui, Seigneur. Viens." }
-  ]}
+    { ref:"Jean 10:27", texte:"Mes brebis entendent ma voix ; je les connais, et elles me suivent.", priere:"Seigneur, rends mon oreille attentive à ta voix aujourd'hui.", explication:"Reconnaître la voix de Dieu demande une relation suivie avec lui, comme une brebis reconnaît son berger." },
+    { ref:"1 Rois 19:12", texte:"Et après le tremblement de terre, un feu : l'Éternel n'était pas dans le feu. Et après le feu, un bruit doux et léger.", priere:"Aide-moi à te reconnaître dans le calme, pas seulement dans l'extraordinaire.", explication:"Dieu ne se manifeste pas toujours dans le spectaculaire : parfois, c'est dans un calme profond qu'il se fait entendre." },
+    { ref:"Ésaïe 30:21", texte:"Tes oreilles entendront derrière toi la voix qui dira : Voici le chemin, marchez-y ! lorsque vous irez à droite ou que vous irez à gauche.", priere:"Guide-moi aujourd'hui, Seigneur, dans les décisions à prendre.", explication:"La direction de Dieu peut se recevoir clairement au moment même de choisir entre deux chemins." },
+    { ref:"Habacuc 2:1", texte:"J'étais à mon poste, et je me tenais sur la tour ; et je veillais, pour voir ce que l'Éternel me dirait, et ce que je répliquerais après ma plainte.", priere:"Apprends-moi à me tenir à l'écoute, patiemment, jusqu'à ta réponse.", explication:"Se tenir à l'écoute, avec patience, jusqu'à ce que Dieu réponde, fait partie de l'attitude d'un cœur attentif." },
+    { ref:"Jean 16:13", texte:"Quand le consolateur sera venu, l'Esprit de vérité, il vous conduira dans toute la vérité ; car il ne parlera pas de lui-même, mais il dira tout ce qu'il aura entendu, et il vous annoncera les choses à venir.", priere:"Merci pour ton Esprit qui me conduit dans la vérité. Guide-moi aujourd'hui.", explication:"L'Esprit ne parle pas de lui-même : il transmet fidèlement ce qu'il reçoit, pour conduire dans la vérité." },
+    { ref:"Jean 8:47", texte:"Celui qui est de Dieu, écoute les paroles de Dieu ; vous n'écoutez pas, parce que vous n'êtes pas de Dieu.", priere:"Seigneur, rends mon cœur disposé à t'écouter aujourd'hui.", explication:"Être disposé à écouter Dieu est une condition du cœur, pas seulement une capacité auditive." },
+    { ref:"Apocalypse 3:20", texte:"Voici, je me tiens à la porte, et je frappe. Si quelqu'un entend ma voix et ouvre la porte, j'entrerai chez lui, je souperai avec lui, et lui avec moi.", priere:"J'ouvre la porte aujourd'hui, Seigneur. Viens.", explication:"Dieu se tient à la porte et attend une réponse : il ne s'impose jamais de force." }
+  ], joursAlt:[
+    { ref:"Ésaïe 6:8", texte:"J'entendis la voix du Seigneur, disant : Qui enverrai-je, et qui marchera pour nous ? Je répondis : Me voici, envoie-moi.", priere:"Me voici, Seigneur, envoie-moi là où tu veux aujourd'hui.", explication:"Répondre me voici à l'appel de Dieu demande une disponibilité active, pas seulement une écoute passive." },
+    { ref:"1 Samuel 3:9", texte:"si l'on t'appelle, tu diras : Parle, Éternel, car ton serviteur écoute.", priere:"Parle, Seigneur, car ton serviteur écoute.", explication:"La formule simple parle, car ton serviteur écoute reste une posture d'ouverture toujours valable aujourd'hui." },
+    { ref:"Psaume 32:8", texte:"Je t'instruirai et te montrerai la voie que tu dois suivre ; je te conseillerai, j'aurai le regard sur toi.", priere:"Merci de m'instruire et de me conseiller sur le chemin à suivre.", explication:"Dieu promet personnellement d'instruire et de conseiller ceux qui cherchent sa direction." },
+    { ref:"Apocalypse 2:7", texte:"Que celui qui a des oreilles entende ce que l'Esprit dit aux Églises.", priere:"Ouvre mes oreilles pour entendre ce que ton Esprit dit aujourd'hui.", explication:"Avoir des oreilles ne suffit pas : il faut choisir d'être réellement attentif à ce que Dieu dit." },
+    { ref:"Marc 4:9", texte:"Que celui qui a des oreilles pour entendre entende.", priere:"Aide-moi à prêter attention à ta voix, sans la laisser passer inaperçue.", explication:"Dieu parle de multiples façons, mais on peut facilement passer à côté si l'on n'y prend pas garde." },
+    { ref:"Job 33:14", texte:"Dieu parle, cependant, tantôt d'une manière, tantôt d'une autre, et l'on n'y prend pas garde.", priere:"Rends-moi attentive aux différentes façons dont tu peux me parler.", explication:"Cultiver l'attention quotidienne à la voix de Dieu porte, avec le temps, un vrai bonheur intérieur." },
+    { ref:"Proverbes 8:34", texte:"Heureux l'homme qui m'écoute, qui veille chaque jour à mes portes, et qui en garde les poteaux !", priere:"Aide-moi à veiller chaque jour pour t'écouter, Seigneur.", explication:"La persévérance à chercher Dieu chaque jour porte du fruit dans la capacité à reconnaître sa voix." }
+  ]},
+  { id:'foi', titre:"La foi", jours:[
+    { ref:"Hébreux 11:1", texte:"Or la foi est une ferme assurance des choses qu'on espère, une démonstration de celles qu'on ne voit pas.", priere:"Seigneur, augmente ma foi pour espérer ce que je ne vois pas encore.", explication:"La foi permet de tenir fermement à ce qu'on espère, même sans preuve visible immédiate." },
+    { ref:"Marc 9:23", texte:"Jésus lui dit : Si tu peux !... Tout est possible à celui qui croit.", priere:"Je crois, Seigneur ; viens au secours de mon manque de foi.", explication:"Jésus ne demande pas une foi parfaite, mais une foi sincère, même mêlée de doute, pour agir." },
+    { ref:"Galates 2:20", texte:"si je vis maintenant dans la chair, je vis dans la foi au Fils de Dieu, qui m'a aimé et qui s'est livré lui-même pour moi.", priere:"Merci Jésus de vivre en moi par la foi aujourd'hui.", explication:"Vivre par la foi signifie laisser Christ vivre à travers soi, plutôt que de compter sur ses propres forces." },
+    { ref:"Matthieu 17:20", texte:"si vous aviez de la foi comme un grain de sénevé, vous diriez à cette montagne : Transporte-toi d'ici là, et elle se transporterait ; rien ne vous serait impossible.", priere:"Seigneur, fais grandir ma foi, même petite comme un grain de sénevé.", explication:"La taille de la foi importe moins que sa sincérité : même petite, elle peut déplacer l'impossible." },
+    { ref:"2 Corinthiens 5:7", texte:"car nous marchons par la foi et non par la vue.", priere:"Aide-moi à marcher par la foi aujourd'hui, même sans tout voir.", explication:"Marcher par la foi signifie avancer en faisant confiance à Dieu, même quand on ne voit pas encore le résultat." },
+    { ref:"Jacques 1:6", texte:"Mais qu'il la demande avec foi, sans douter ; car celui qui doute est semblable au flot de la mer, agité et poussé par le vent.", priere:"Seigneur, ôte le doute de mon cœur quand je te demande quelque chose.", explication:"Douter fragilise la prière ; une foi stable, elle, reste ancrée malgré les circonstances changeantes." },
+    { ref:"Éphésiens 2:8", texte:"Car c'est par la grâce que vous êtes sauvés, par le moyen de la foi. Et cela ne vient pas de vous, c'est le don de Dieu.", priere:"Merci pour ce don gratuit de la grâce, reçu par la foi seule.", explication:"Le salut par la foi retire toute base à l'orgueil : c'est un don, pas une performance à atteindre." }
+  ], joursAlt:[
+    { ref:"Romains 1:17", texte:"ainsi qu'il est écrit : Le juste vivra par la foi.", priere:"Seigneur, apprends-moi à vivre chaque jour par la foi, pas par la peur.", explication:"Toute la vie chrétienne repose sur ce principe simple : c'est par la foi, et non par nos propres efforts, que l'on tient debout devant Dieu." },
+    { ref:"Luc 17:5", texte:"Les apôtres dirent au Seigneur : Augmente-nous la foi.", priere:"Augmente ma foi aujourd'hui, Seigneur, comme les apôtres te l'ont demandé.", explication:"Demander à Dieu d'augmenter sa foi est une prière légitime, pas un aveu de faiblesse." },
+    { ref:"1 Pierre 1:7", texte:"afin que l'épreuve de votre foi, plus précieuse que l'or périssable, ait pour résultat la louange, la gloire et l'honneur, lorsque Jésus-Christ apparaîtra.", priere:"Merci que même les épreuves affinent ma foi, comme l'or au feu.", explication:"Les épreuves ne détruisent pas la foi authentique : elles la purifient, comme le feu purifie l'or." },
+    { ref:"Jean 20:29", texte:"Jésus lui dit : Parce que tu m'as vu, tu as cru. Heureux ceux qui n'ont pas vu, et qui ont cru !", priere:"Seigneur, aide-moi à croire sans avoir tout vu.", explication:"Croire sans avoir vu est justement la foi que Jésus déclare bénie, plus que la foi qui exige des preuves." },
+    { ref:"1 Jean 5:4", texte:"car tout ce qui est né de Dieu triomphe du monde ; et la victoire qui triomphe du monde, c'est notre foi.", priere:"Merci que ma foi en toi a déjà remporté la victoire.", explication:"La victoire sur les difficultés du monde ne vient pas de la force personnelle, mais de la foi placée en Dieu." },
+    { ref:"Matthieu 21:22", texte:"Tout ce que vous demanderez avec foi par la prière, vous le recevrez.", priere:"Seigneur, je te présente ma demande aujourd'hui avec foi.", explication:"Une prière portée par la foi, et non par le doute, est celle qui reçoit une réponse." },
+    { ref:"Hébreux 11:6", texte:"Or sans la foi il est impossible de lui être agréable ; car il faut que celui qui s'approche de Dieu croie que Dieu existe, et qu'il est le rémunérateur de ceux qui le cherchent.", priere:"Aide-moi à m'approcher de toi en croyant que tu es là et que tu réponds.", explication:"Croire que Dieu existe et qu'il répond à ceux qui le cherchent est la porte d'entrée de toute relation avec lui." }
+  ]},
 ];
 
 /* Une icône par thème, pour la grille de présentation. */
@@ -934,29 +1199,54 @@ const PLAN_ICONS = {
   'marcher-jesus':'👣', 'tentation':'🛡️', 'reves':'💭', 'forteresses':'⚔️',
   'connaitre-dieu':'📖', 'education-enfants':'👶', 'guerison-coeur':'💚',
   'amis':'🤝', 'relations-sociales':'👥', 'relations-sexuelles':'💍',
-  'famille':'🏠', 'projets':'🎯', 'finances':'💰', 'plan-de-dieu':'🧭', 'voix-de-dieu':'👂'
+  'famille':'🏠', 'projets':'🎯', 'finances':'💰', 'plan-de-dieu':'🧭', 'voix-de-dieu':'👂', 'foi':'✨'
 };
 
 /* Grille d'icônes (comme une appli de plans de lecture) avec jauge de
    progression par plan. Touche une tuile pour ouvrir le plan en plein
    écran, jour après jour. */
+/* Le cycle actif d'un plan : 'main' (les 7 versets d'origine) ou 'alt'
+   (un deuxième jeu de 7 versets différents, pour recommencer avec du
+   nouveau une fois le plan terminé). */
+function activeJours(plan){
+  const cycle = (state.thematicCycle && state.thematicCycle[plan.id]) || 'main';
+  return (cycle === 'alt' && plan.joursAlt) ? plan.joursAlt : plan.jours;
+}
 function renderThematicPlans(){
   const el = document.getElementById('plansGrid');
   if(!el) return;
   if(!state.thematicProgress) state.thematicProgress = {};
   el.innerHTML = THEMATIC_PLANS.map(plan=>{
+    const jours = activeJours(plan);
     const done = state.thematicProgress[plan.id] || [];
     const nbDone = done.filter(Boolean).length;
-    const total = plan.jours.length;
+    const total = jours.length;
     const pct = Math.round((nbDone/total)*100);
     const icon = PLAN_ICONS[plan.id] || '📜';
-    return '<div class="plan-tile" onclick="openPlanReader(\''+plan.id+'\')">'
+    const fini = pct === 100;
+    return '<div class="plan-tile'+(fini?' plan-tile-done':'')+'" onclick="openPlanReader(\''+plan.id+'\')">'
+      + (fini ? '<div class="plan-tile-badge">✅ Terminé</div>' : '')
       + '<div class="plan-tile-icon">'+icon+'</div>'
       + '<div class="plan-tile-title">'+plan.titre+'</div>'
       + '<div class="plan-tile-bar"><div class="plan-tile-bar-fill" style="width:'+pct+'%"></div></div>'
       + '<div class="plan-tile-pct">'+nbDone+'/'+total+' · '+pct+'%</div>'
+      + (fini ? '<div class="plan-tile-restart-row">'
+          + '<button class="plan-tile-restart" onclick="event.stopPropagation(); restartPlan(\''+plan.id+'\',\'main\')">🔁 Mêmes versets</button>'
+          + '<button class="plan-tile-restart" onclick="event.stopPropagation(); restartPlan(\''+plan.id+'\',\'alt\')">🆕 Nouveaux versets</button>'
+        + '</div>' : '')
       + '</div>';
   }).join('');
+}
+
+/* Remet un plan à zéro pour le refaire depuis le début, avec soit les
+   mêmes versets, soit un deuxième jeu de versets différents (cycle='alt'). */
+function restartPlan(planId, cycle){
+  if(!state.thematicProgress) state.thematicProgress = {};
+  if(!state.thematicCycle) state.thematicCycle = {};
+  state.thematicProgress[planId] = [];
+  state.thematicCycle[planId] = (cycle === 'alt') ? 'alt' : 'main';
+  persist();
+  renderThematicPlans();
 }
 
 /* =========================================================================
@@ -971,8 +1261,9 @@ function openPlanReader(planId){
   if(!plan) return;
   readerPlanId = planId;
   if(!state.thematicProgress) state.thematicProgress = {};
+  const jours = activeJours(plan);
   const done = state.thematicProgress[planId] || [];
-  const firstUnfinished = plan.jours.findIndex((_,i)=>!done[i]);
+  const firstUnfinished = jours.findIndex((_,i)=>!done[i]);
   readerDayIndex = firstUnfinished === -1 ? 0 : firstUnfinished;
   document.getElementById('readerTitle').textContent = plan.titre;
   renderReaderDay();
@@ -985,16 +1276,25 @@ function closePlanReader(){
 function renderReaderDay(){
   const plan = THEMATIC_PLANS.find(p=>p.id===readerPlanId);
   if(!plan) return;
-  const total = plan.jours.length;
+  const jours = activeJours(plan);
+  const total = jours.length;
   readerDayIndex = Math.max(0, Math.min(readerDayIndex, total-1));
-  const jour = plan.jours[readerDayIndex];
+  const jour = jours[readerDayIndex];
   const done = (state.thematicProgress && state.thematicProgress[readerPlanId]) || [];
   const isDone = !!done[readerDayIndex];
 
   document.getElementById('readerDay').textContent = 'Jour ' + (readerDayIndex+1) + ' / ' + total;
   document.getElementById('readerRef').textContent = jour.ref;
   document.getElementById('readerText').textContent = '« ' + jour.texte + ' »';
+  const explEl = document.getElementById('readerExplication');
+  if(explEl) explEl.textContent = jour.explication ? ('💡 ' + jour.explication) : '';
   document.getElementById('readerPrayer').textContent = '🙏 ' + jour.priere;
+
+  const versionsEl = document.getElementById('readerVersions');
+  if(versionsEl){
+    const links = verseVersionLinks(jour.ref);
+    versionsEl.innerHTML = links.map(l=>'<a href="'+l.url+'" target="_blank" rel="noopener">'+l.label+'</a>').join('');
+  }
 
   const pct = Math.round(((readerDayIndex+1)/total)*100);
   document.getElementById('readerProgressFill').style.width = pct + '%';
@@ -1010,7 +1310,8 @@ function renderReaderDay(){
 function readerNext(){
   const plan = THEMATIC_PLANS.find(p=>p.id===readerPlanId);
   if(!plan) return;
-  if(readerDayIndex < plan.jours.length-1){ readerDayIndex++; renderReaderDay(); }
+  const total = activeJours(plan).length;
+  if(readerDayIndex < total-1){ readerDayIndex++; renderReaderDay(); }
 }
 function readerPrev(){
   if(readerDayIndex > 0){ readerDayIndex--; renderReaderDay(); }
@@ -1019,9 +1320,18 @@ function readerToggleDone(){
   if(!readerPlanId) return;
   if(!state.thematicProgress) state.thematicProgress = {};
   if(!state.thematicProgress[readerPlanId]) state.thematicProgress[readerPlanId] = [];
-  state.thematicProgress[readerPlanId][readerDayIndex] = !state.thematicProgress[readerPlanId][readerDayIndex];
+  const plan = THEMATIC_PLANS.find(p=>p.id===readerPlanId);
+  const total = plan ? activeJours(plan).length : 0;
+  const wasDone = !!state.thematicProgress[readerPlanId][readerDayIndex];
+  const justFinishedLastDay = plan && !wasDone && readerDayIndex === total-1;
+  state.thematicProgress[readerPlanId][readerDayIndex] = !wasDone;
   persist();
   renderReaderDay();
+  if(justFinishedLastDay){
+    const doneBtn = document.getElementById('readerDoneBtn');
+    if(doneBtn) doneBtn.textContent = '🎉 Plan terminé ! Retour à la liste...';
+    setTimeout(()=>{ closePlanReader(); }, 1200);
+  }
 }
 
 /* Balayage tactile gauche/droite + flèches du clavier (pratique sur ordi).
@@ -1095,6 +1405,18 @@ function renderRapportPreview(){
     "<li>" + fmtDate(parseDate(e.date)) + (e.reference ? ' · '+e.reference : '') + (e.verse ? ' · verset '+e.verse : '') + "<br>" + e.text + "</li>"
   ).join('') || "<li class='empty'>Aucune prière.</li>";
 
+  const plansProgress = THEMATIC_PLANS.map(plan=>{
+    const done = (state.thematicProgress && state.thematicProgress[plan.id]) || [];
+    const nbDone = done.filter(Boolean).length;
+    const total = activeJours(plan).length;
+    const pct = Math.round((nbDone/total)*100);
+    return { titre: plan.titre, nbDone, total, pct };
+  });
+  const plansTermines = plansProgress.filter(p=>p.pct===100).length;
+  const plansEntries = plansProgress.map(p=>
+    "<li><strong>" + p.titre + "</strong> — " + p.nbDone + "/" + p.total + " jours (" + p.pct + "%)" + (p.pct===100 ? " ✅" : "") + "</li>"
+  ).join('');
+
   el.innerHTML = `
     <div class="card">
       <h2>Résumé de progression</h2>
@@ -1103,6 +1425,11 @@ function renderRapportPreview(){
     <div class="card"><h2>📘 Journal des chapitres</h2><ul style="padding-left:18px; margin:0;">${chapEntries}</ul></div>
     <div class="card"><h2>📖 Journal de compréhension</h2><ul style="padding-left:18px; margin:0;">${compEntries}</ul></div>
     <div class="card"><h2>🙏 Prières</h2><ul style="padding-left:18px; margin:0;">${prayerEntries}</ul></div>
+    <div class="card">
+      <h2>🕊️ Plans thématiques</h2>
+      <div class="detail" style="margin-top:0;"><strong>${plansTermines} / ${THEMATIC_PLANS.length}</strong> plans terminés</div>
+      <ul style="padding-left:18px; margin-top:8px;">${plansEntries}</ul>
+    </div>
   `;
 }
 

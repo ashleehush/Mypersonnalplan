@@ -185,10 +185,15 @@
   /* --- Ajouts : plans thématiques — grille d'icônes + jauge --- */
   .plans-grid{ display:grid; grid-template-columns:repeat(2, 1fr); gap:12px; }
   .plan-tile{
-    background:var(--cream-alt); border:1px solid #e0d8c0; border-radius:14px;
+    position:relative; background:var(--cream-alt); border:1px solid #e0d8c0; border-radius:14px;
     padding:16px 10px 12px; text-align:center; cursor:pointer; transition:transform .12s ease;
   }
   .plan-tile:active{ transform:scale(.97); }
+  .plan-tile-done{ border-color:var(--green); }
+  .plan-tile-badge{
+    position:absolute; top:6px; right:8px; font-size:.6rem; font-weight:bold;
+    color:var(--green); background:#E1EFE3; padding:2px 6px; border-radius:6px;
+  }
   .plan-tile-icon{ font-size:2rem; line-height:1; margin-bottom:8px; }
   .plan-tile-title{
     font-size:.78rem; font-weight:bold; color:var(--khaki-dark); min-height:2.3em;
@@ -196,6 +201,11 @@
   }
   .plan-tile-bar{ height:6px; background:#e5dcc0; border-radius:3px; overflow:hidden; }
   .plan-tile-bar-fill{ height:100%; background:var(--olive); border-radius:3px; }
+  .plan-tile-restart-row{ display:flex; gap:6px; margin-top:8px; }
+  .plan-tile-restart{
+    flex:1; background:var(--gold-light); color:var(--khaki-dark);
+    border:none; border-radius:8px; padding:7px 4px; font-size:.66rem; font-weight:bold; cursor:pointer;
+  }
   .plan-tile-pct{ font-size:.68rem; color:var(--taupe); margin-top:6px; }
 
   /* --- Lecteur plein écran d'un plan (verset + prière, un par écran) --- */
@@ -224,7 +234,13 @@
   .plan-reader-day{ font-size:.72rem; letter-spacing:1px; text-transform:uppercase; color:var(--taupe); font-weight:bold; }
   .plan-reader-ref{ font-size:1.05rem; font-weight:bold; color:var(--khaki-dark); }
   .plan-reader-text{ font-size:1.15rem; font-style:italic; line-height:1.6; color:var(--text-dark); max-width:520px; }
+  .plan-reader-explication{ font-size:.85rem; color:var(--taupe); max-width:500px; line-height:1.5; font-style:normal; }
   .plan-reader-prayer{ font-size:.95rem; color:var(--olive); max-width:480px; line-height:1.5; }
+  .plan-reader-versions{ display:flex; flex-wrap:wrap; gap:6px; justify-content:center; max-width:500px; }
+  .plan-reader-versions a{
+    font-size:.66rem; font-weight:bold; color:var(--khaki-dark); background:var(--gold-light);
+    padding:5px 9px; border-radius:8px; text-decoration:none;
+  }
   .plan-reader-nav{ display:flex; align-items:center; gap:10px; }
   .plan-reader-arrow{
     background:var(--gold-light); color:var(--khaki-dark); border:none; width:46px; height:46px;
@@ -291,6 +307,26 @@
   html[data-palette="violet"]{
     --khaki-dark:#4B3B66; --khaki-med:#8672A3; --gold:#9B84C0; --gold-light:#E9E0F5;
     --taupe:#B0A0C8; --olive:#5A3F80; --cream:#FAF7FD; --cream-alt:#F1E9F8;
+  }
+  html[data-palette="corail"]{
+    --khaki-dark:#8C4A3D; --khaki-med:#C98268; --gold:#D98F6F; --gold-light:#F6E1D4;
+    --taupe:#D9AE9B; --olive:#A3573F; --cream:#FFF8F4; --cream-alt:#FBEBE1;
+  }
+  html[data-palette="turquoise"]{
+    --khaki-dark:#1F5C5C; --khaki-med:#5FA3A3; --gold:#4FB3AC; --gold-light:#DCF3F1;
+    --taupe:#9FC9C6; --olive:#1E6E68; --cream:#F3FBFA; --cream-alt:#E4F5F3;
+  }
+  html[data-palette="bordeaux"]{
+    --khaki-dark:#5C1F2E; --khaki-med:#9C5060; --gold:#8C2F42; --gold-light:#F0DADE;
+    --taupe:#C79AA3; --olive:#6E1F30; --cream:#FBF3F4; --cream-alt:#F5E4E7;
+  }
+  html[data-palette="anthracite"]{
+    --khaki-dark:#33383D; --khaki-med:#6B7278; --gold:#55606B; --gold-light:#E4E7EA;
+    --taupe:#97A0A8; --olive:#40474E; --cream:#F7F8F9; --cream-alt:#ECEEF0;
+  }
+  html[data-palette="menthe"]{
+    --khaki-dark:#285C4A; --khaki-med:#6BA893; --gold:#4FA98A; --gold-light:#DFF3EA;
+    --taupe:#9CC9B8; --olive:#1F5C46; --cream:#F4FBF8; --cream-alt:#E6F5EF;
   }
 
   /* =========================================================================

@@ -184,9 +184,15 @@
       <option value="rose">Rosé</option>
       <option value="vert">Vert forêt</option>
       <option value="violet">Violette</option>
+      <option value="corail">Corail</option>
+      <option value="turquoise">Turquoise</option>
+      <option value="bordeaux">Bordeaux</option>
+      <option value="anthracite">Anthracite</option>
+      <option value="menthe">Menthe</option>
     </select>
     <label>Fond d'écran</label>
     <select id="bgSelect" onchange="setBackground(this.value)">
+      <option value="auto">🔄 Change chaque jour (60 ambiances)</option>
       <option value="dore">Doré (classique)</option>
       <option value="mer">Mer</option>
       <option value="plage">Plage</option>
@@ -194,6 +200,7 @@
       <option value="ciel">Ciel</option>
       <option value="aurore">Aurore boréale</option>
     </select>
+    <div class="subnote" style="margin-top:6px;">Les fonds sont des ambiances de couleurs dessinées (pas de vraies photos), pour que l'appli reste rapide et fonctionne même sans connexion. En mode "Change chaque jour", 60 ambiances différentes tournent automatiquement, un jour après l'autre.</div>
   </div>
 
   <div class="card">
@@ -227,7 +234,9 @@
     <div class="plan-reader-day" id="readerDay"></div>
     <div class="plan-reader-ref" id="readerRef"></div>
     <div class="plan-reader-text" id="readerText"></div>
+    <div class="plan-reader-explication" id="readerExplication"></div>
     <div class="plan-reader-prayer" id="readerPrayer"></div>
+    <div class="plan-reader-versions" id="readerVersions"></div>
   </div>
   <div class="plan-reader-nav">
     <button class="plan-reader-arrow" id="readerPrevBtn" onclick="readerPrev()" aria-label="Jour précédent">‹</button>
