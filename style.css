@@ -30,14 +30,37 @@
   }
   *{box-sizing:border-box;}
   body{
-    margin:0; font-family:"Avenir","Segoe UI",sans-serif; background:var(--cream);
-    color:var(--text-dark); padding:calc(env(safe-area-inset-top) + 16px) 16px 40px; max-width:640px; margin:0 auto;
+    margin:0; font-family:"Avenir","Segoe UI",sans-serif; color:var(--text-dark);
+    padding:calc(env(safe-area-inset-top) + 16px) 16px 40px; max-width:640px; margin:0 auto;
+    background:
+      radial-gradient(circle at 15% -10%, rgba(183,151,90,.20), transparent 45%),
+      radial-gradient(circle at 105% 15%, rgba(107,100,64,.16), transparent 42%),
+      radial-gradient(circle at 50% 120%, rgba(183,151,90,.14), transparent 50%),
+      var(--cream);
+    background-attachment:fixed;
   }
   h1{
-    background:var(--khaki-dark); color:var(--text-light); text-align:center;
+    background:
+      repeating-linear-gradient(135deg, rgba(255,255,255,.05) 0 10px, transparent 10px 20px),
+      var(--khaki-dark);
+    color:var(--text-light); text-align:center;
     padding:16px 8px; border-radius:10px; font-size:1.05rem; letter-spacing:2px;
-    margin:0 0 16px;
+    margin:0 0 16px; border:1px solid rgba(183,151,90,.5);
   }
+  .today-date{
+    text-align:center; font-size:.8rem; color:var(--khaki-med); font-style:italic;
+    margin:-8px 0 14px; text-transform:capitalize;
+  }
+  .verse-card{
+    background:linear-gradient(160deg, var(--gold-light), var(--cream-alt));
+    border:1px solid var(--gold); position:relative; text-align:center;
+  }
+  .verse-card h2{ color:var(--olive); }
+  .verse-card .verse-text{
+    font-size:1rem; font-style:italic; color:var(--text-dark); line-height:1.5; margin:6px 0 8px;
+  }
+  .verse-card .verse-ref{ font-weight:bold; color:var(--khaki-dark); font-size:.85rem; }
+  .verse-card .verse-source{ font-size:.68rem; color:var(--taupe); margin-top:6px; font-style:italic; }
   .card{background:var(--cream-alt); border-radius:12px; padding:14px 16px; margin-bottom:14px; border:1px solid #e0d8c0;}
   .card h2{margin:0 0 10px; font-size:.9rem; text-transform:uppercase; letter-spacing:1px; color:var(--khaki-dark);}
   .subnote{font-size:.75rem; color:var(--taupe); font-style:italic; margin:-4px 0 10px;}
