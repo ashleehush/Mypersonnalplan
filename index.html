@@ -93,9 +93,9 @@
 <section id="page-plans" class="page" hidden>
   <div class="card">
     <h2>🕊️ Plans thématiques</h2>
-    <div class="subnote">De courts plans (3 à 7 jours) construits uniquement à partir de versets bibliques, avec une prière pour chaque jour. Indépendants de ton plan principal de 66 mois — coche les jours au fur et à mesure.</div>
+    <div class="subnote">7 jours par plan, uniquement des versets bibliques + une prière. Touche une tuile pour t'y plonger en plein écran.</div>
   </div>
-  <div id="plansList"></div>
+  <div id="plansGrid" class="plans-grid"></div>
 </section>
 
 <!-- 2. JOURNAL DES CHAPITRES -->
@@ -210,6 +210,31 @@
 </section>
 
 </div><!-- /appRoot -->
+
+<!-- Lecteur plein écran d'un plan thématique : un verset + une prière par
+     écran, on avance/recule en glissant à gauche/à droite. -->
+<div id="planReader" class="plan-reader no-print">
+  <div class="plan-reader-top">
+    <button class="plan-reader-close" onclick="closePlanReader()" aria-label="Fermer">✕</button>
+    <div class="plan-reader-title" id="readerTitle"></div>
+    <div style="width:38px;"></div>
+  </div>
+  <div class="plan-reader-progress">
+    <div class="plan-reader-progress-bar"><div id="readerProgressFill" class="plan-reader-progress-fill"></div></div>
+    <div class="plan-reader-progress-label" id="readerProgressLabel"></div>
+  </div>
+  <div class="plan-reader-body" id="readerBody">
+    <div class="plan-reader-day" id="readerDay"></div>
+    <div class="plan-reader-ref" id="readerRef"></div>
+    <div class="plan-reader-text" id="readerText"></div>
+    <div class="plan-reader-prayer" id="readerPrayer"></div>
+  </div>
+  <div class="plan-reader-nav">
+    <button class="plan-reader-arrow" id="readerPrevBtn" onclick="readerPrev()" aria-label="Jour précédent">‹</button>
+    <button class="plan-reader-done" id="readerDoneBtn" onclick="readerToggleDone()">Marquer ce jour comme fait</button>
+    <button class="plan-reader-arrow" id="readerNextBtn" onclick="readerNext()" aria-label="Jour suivant">›</button>
+  </div>
+</div>
 
 <!-- Firebase (chargé seulement pour permettre la synchronisation ; sans configuration valide, l'appli reste en mode local) -->
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
