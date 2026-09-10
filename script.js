@@ -39,6 +39,20 @@ allBooks.forEach(b=>{
   logLivreSelect.appendChild(opt);
 });
 
+/* Menu déroulant de numéros de verset (1 à 180, couvre le plus long chapitre
+   de la Bible — Psaume 119, 176 versets) : plus de saisie manuelle. */
+const compVersetSelect = document.getElementById('compVerset');
+if(compVersetSelect){
+  const empty = document.createElement('option');
+  empty.value = ''; empty.textContent = '— (aucun) —';
+  compVersetSelect.appendChild(empty);
+  for(let v=1; v<=180; v++){
+    const opt = document.createElement('option');
+    opt.value = v; opt.textContent = 'Verset ' + v;
+    compVersetSelect.appendChild(opt);
+  }
+}
+
 let state = { dateDebut: new Date().toISOString().slice(0,10), chapterLog: [], compLog: [], prayers: [] };
 
 /* =========================================================================
