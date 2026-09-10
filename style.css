@@ -178,6 +178,26 @@
   .entry .del{float:right; color:var(--red); cursor:pointer; font-size:.75rem;}
   .empty{color:var(--taupe); font-style:italic; font-size:.85rem;}
 
+  /* --- Ajouts : graphiques du rapport --- */
+  .chart-labels{
+    display:flex; justify-content:space-between; font-size:.7rem; color:var(--taupe);
+    margin-top:2px;
+  }
+  .chapbar-list{ display:flex; flex-direction:column; gap:8px; }
+  .chapbar-row{ display:flex; align-items:center; gap:8px; }
+  .chapbar-label{
+    width:88px; flex-shrink:0; font-size:.72rem; color:var(--khaki-dark); font-weight:bold;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .chapbar-track{ flex:1; height:10px; background:#e5dcc0; border-radius:5px; overflow:hidden; }
+  .chapbar-fill{ height:100%; background:var(--gold); border-radius:5px; }
+  .chapbar-value{ width:48px; flex-shrink:0; text-align:right; font-size:.7rem; color:var(--taupe); }
+  .plans-donut-wrap{ display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+  .plans-donut-legend{ display:flex; flex-direction:column; gap:6px; font-size:.8rem; color:var(--khaki-dark); }
+  .plans-donut-legend .dot{
+    display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:6px;
+  }
+
   /* --- Ajouts : vidéo du jour --- */
   .video-wrap{ position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:10px; background:#000; }
   .video-wrap iframe{ position:absolute; top:0; left:0; width:100%; height:100%; border:0; }
