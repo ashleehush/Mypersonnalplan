@@ -1,3 +1,28 @@
+/* --- Menu latéral et pages --- */
+.topbar{ display:flex; align-items:center; gap:10px; margin:0 0 16px; }
+.hamburger{
+  background:var(--khaki-dark); color:var(--text-light); border:none; width:42px; height:42px;
+  min-width:42px; border-radius:9px; font-size:1.25rem; cursor:pointer; margin-top:0; padding:0;
+}
+.side-menu{
+  position:fixed; top:0; left:-280px; width:260px; height:100%; background:var(--cream-alt);
+  box-shadow:2px 0 16px rgba(0,0,0,.18); padding:22px 14px; transition:left .25s ease; z-index:100;
+  display:flex; flex-direction:column; gap:4px; overflow-y:auto;
+}
+.side-menu.open{ left:0; }
+.side-menu-title{
+  font-size:.72rem; text-transform:uppercase; letter-spacing:1px; color:var(--khaki-med);
+  font-weight:bold; margin-bottom:10px; padding:0 10px;
+}
+.side-menu button{
+  background:none; color:var(--text-dark); text-align:left; padding:13px 10px; border-radius:8px;
+  font-weight:normal; margin-top:0; font-size:.92rem;
+}
+.side-menu button.active{ background:var(--gold-light); font-weight:bold; color:var(--khaki-dark); }
+.menu-overlay{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.35); z-index:99; }
+.menu-overlay.show{ display:block; }
+.page[hidden]{ display:none; }
+
 :root{
     --cream:#FBF7EF; --cream-alt:#F0E9D8; --khaki-dark:#534B32; --khaki-med:#8A8060;
     --gold:#B7975A; --gold-light:#EBDFC2; --taupe:#A79C7E; --olive:#6B6440;
@@ -80,3 +105,15 @@
   .poslivre.done{color:var(--green);}
   .poslivre.current{color:var(--text-dark); font-weight:bold; background:var(--gold-light); border-radius:5px; padding-left:6px;}
   .poslivre.todo{color:var(--taupe);}
+
+  /* --- Ajouts : rapport imprimable / export PDF --- */
+  @media print{
+    body{ padding:0; max-width:100%; background:#fff; }
+    h1{ background:none; color:var(--text-dark); border:2px solid var(--khaki-dark); }
+    .no-print, button, input, select, textarea, label,
+    .syncbadge, #loginScreen, #accountBox, .reminder{ display:none !important; }
+    .page[hidden]{ display:block !important; }
+    .card{ border:1px solid #ccc; break-inside:avoid; background:#fff; }
+    #positionList{ max-height:none !important; overflow:visible !important; }
+    .entry .del{ display:none !important; }
+  }

@@ -370,9 +370,31 @@ function renderPrayers(){
   ).join('');
 }
 
+function showPage(id){
+  document.querySelectorAll('.page').forEach(p=>{ p.hidden = (p.id !== 'page-'+id); });
+  document.querySelectorAll('.side-menu button').forEach(b=>{
+    b.classList.toggle('active', b.dataset.page === id);
+  });
+  closeMenu();
+  window.scrollTo(0,0);
+}
+function toggleMenu(){
+  document.getElementById('sideMenu').classList.toggle('open');
+  document.getElementById('menuOverlay').classList.toggle('show');
+}
+function closeMenu(){
+  document.getElementById('sideMenu').classList.remove('open');
+  document.getElementById('menuOverlay').classList.remove('show');
+}
+
+function printReport(){
+  document.querySelectorAll('details').forEach(d=> d.open = true);
+  window.print();
+}
+
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=3').catch(()=>{});
   });
 }
 
