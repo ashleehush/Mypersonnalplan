@@ -26,6 +26,7 @@
   <button data-page="journal-chapitres" onclick="showPage('journal-chapitres')">📘 Journal des chapitres</button>
   <button data-page="journal-comprehension" onclick="showPage('journal-comprehension')">📖 Journal de compréhension</button>
   <button data-page="prieres" onclick="showPage('prieres')">🙏 Prières</button>
+  <button data-page="plans" onclick="showPage('plans')">🕊️ Plans thématiques</button>
   <button data-page="rapports" onclick="showPage('rapports')">📄 Rapports</button>
   <button data-page="parametres" onclick="showPage('parametres')">⚙️ Paramètres</button>
 </nav>
@@ -81,6 +82,20 @@
     <div class="reminder" id="reminder" style="display:none;"></div>
   </div>
 
+  <div class="card">
+    <h2>🎥 Message du jour</h2>
+    <div id="videoOfDay"></div>
+  </div>
+
+</section>
+
+<!-- PLANS THÉMATIQUES -->
+<section id="page-plans" class="page" hidden>
+  <div class="card">
+    <h2>🕊️ Plans thématiques</h2>
+    <div class="subnote">De courts plans (3 à 7 jours) construits uniquement à partir de versets bibliques, avec une prière pour chaque jour. Indépendants de ton plan principal de 66 mois — coche les jours au fur et à mesure.</div>
+  </div>
+  <div id="plansList"></div>
 </section>
 
 <!-- 2. JOURNAL DES CHAPITRES -->
@@ -150,6 +165,40 @@
       <button onclick="logout()" style="background:var(--khaki-med);">Se déconnecter</button>
     </div>
   </div>
+
+  <div class="card">
+    <h2>🎨 Apparence</h2>
+    <div class="subnote">Choisis les couleurs et le fond qui te plaisent — ça s'applique tout de suite, partout dans l'appli.</div>
+    <label>Palette de couleurs</label>
+    <select id="paletteSelect" onchange="setPalette(this.value)">
+      <option value="dore">Doré (classique)</option>
+      <option value="bleu">Bleu nuit</option>
+      <option value="rose">Rosé</option>
+      <option value="vert">Vert forêt</option>
+      <option value="violet">Violette</option>
+    </select>
+    <label>Fond d'écran</label>
+    <select id="bgSelect" onchange="setBackground(this.value)">
+      <option value="dore">Doré (classique)</option>
+      <option value="mer">Mer</option>
+      <option value="plage">Plage</option>
+      <option value="nuages">Nuages</option>
+      <option value="ciel">Ciel</option>
+      <option value="aurore">Aurore boréale</option>
+    </select>
+  </div>
+
+  <div class="card">
+    <h2>🔔 Rappels</h2>
+    <div class="subnote">Un rappel s'affiche dès que ça fait plusieurs jours sans lecture enregistrée. Comme cette appli n'a pas de serveur, il ne peut pas arriver quand l'appli est fermée — mais il se déclenche automatiquement dès que tu la rouvres, sans rien à faire.</div>
+    <div class="detail" id="notifStatus" style="margin:4px 0 8px;">🔕 Rappels désactivés</div>
+    <button id="notifBtn" onclick="toggleNotifs()">Activer les rappels</button>
+  </div>
+
+  <div class="card">
+    <h2>🎥 Message / prédication du jour</h2>
+    <div class="subnote">Tes liens YouTube favoris se gèrent directement dans le fichier <code>video-config.js</code> sur GitHub (pas ici, pour ne pas encombrer l'appli). Une vidéo différente s'affiche automatiquement chaque jour sur la page d'Accueil.</div>
+  </div>
 </section>
 
 </div><!-- /appRoot -->
@@ -159,6 +208,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script src="video-config.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

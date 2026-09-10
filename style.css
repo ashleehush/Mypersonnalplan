@@ -27,6 +27,10 @@
     --cream:#FBF7EF; --cream-alt:#F0E9D8; --khaki-dark:#534B32; --khaki-med:#8A8060;
     --gold:#B7975A; --gold-light:#EBDFC2; --taupe:#A79C7E; --olive:#6B6440;
     --text-dark:#3A3524; --text-light:#FBF7EF; --red:#B3261E; --green:#2E5E3A;
+    /* Couleurs fixes des 3 cases (Taux / Ch. restants / Pages rest.) — volontairement
+       PAS dans les blocs de palette ci-dessous : elles ne changent jamais, quelle que
+       soit la palette choisie, et n'utilisent jamais orange/rouge/violet/rose. */
+    --kpi-taux:#2E6B5E; --kpi-rest:#4A5D7A; --kpi-pages:#A9812F;
   }
   *{box-sizing:border-box;}
   body{
@@ -38,6 +42,33 @@
       radial-gradient(circle at 50% 120%, rgba(183,151,90,.14), transparent 50%),
       var(--cream);
     background-attachment:fixed;
+    min-height:100vh;
+    transition:background .4s ease;
+  }
+
+  /* --- Écrans larges (iPad / ordinateur) : mise en page étendue + décor plus riche --- */
+  @media (min-width:700px){
+    body{
+      max-width:820px; padding-left:32px; padding-right:32px;
+      background:
+        radial-gradient(circle at 10% -15%, rgba(183,151,90,.26), transparent 40%),
+        radial-gradient(circle at 100% 5%, rgba(107,100,64,.22), transparent 38%),
+        radial-gradient(circle at 95% 92%, rgba(183,151,90,.20), transparent 42%),
+        radial-gradient(circle at 2% 90%, rgba(107,100,64,.18), transparent 42%),
+        radial-gradient(circle at 50% 45%, rgba(183,151,90,.08), transparent 60%),
+        var(--cream);
+    }
+    h1{ font-size:1.3rem; padding:20px 10px; }
+    .card{ padding:20px 26px; }
+    #page-accueil{ display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+    #page-accueil .verse-card{ grid-column:1 / -1; }
+    #page-accueil .card:has(#banner){ grid-column:1 / -1; }
+    #page-accueil .card:has(#videoOfDay){ grid-column:1 / -1; }
+    #page-journal-chapitres .card, #page-journal-comprehension .card,
+    #page-prieres .card, #page-parametres .card{ max-width:640px; margin-left:auto; margin-right:auto; }
+  }
+  @media (min-width:1000px){
+    body{ max-width:1040px; }
   }
   h1{
     background:
@@ -51,16 +82,50 @@
     text-align:center; font-size:.8rem; color:var(--khaki-med); font-style:italic;
     margin:-8px 0 14px; text-transform:capitalize;
   }
+  /* Le verset du jour ne suit JAMAIS la palette choisie dans Paramètres —
+     c'est la carte "signature" de l'appli. Par contre, sa couleur change
+     chaque jour toute seule (7 tons fixes qui tournent avec le verset),
+     jamais orange / rouge / violet / rose. */
   .verse-card{
-    background:linear-gradient(160deg, var(--gold-light), var(--cream-alt));
-    border:1px solid var(--gold); position:relative; text-align:center;
+    background:linear-gradient(160deg, #F6EFD8, #EEE2BF);
+    border:1px solid #C9A85C; position:relative; text-align:center;
   }
-  .verse-card h2{ color:var(--olive); }
+  .verse-card h2{ color:#5B4A22; }
   .verse-card .verse-text{
-    font-size:1rem; font-style:italic; color:var(--text-dark); line-height:1.5; margin:6px 0 8px;
+    font-size:1rem; font-style:italic; color:#3A3524; line-height:1.5; margin:6px 0 8px;
   }
-  .verse-card .verse-ref{ font-weight:bold; color:var(--khaki-dark); font-size:.85rem; }
-  .verse-card .verse-source{ font-size:.68rem; color:var(--taupe); margin-top:6px; font-style:italic; }
+  .verse-card .verse-ref{ font-weight:bold; color:#5B4A22; font-size:.85rem; }
+  .verse-card .verse-source{ font-size:.68rem; color:#8A7C55; margin-top:6px; font-style:italic; }
+
+  .verse-card.vc1{ background:linear-gradient(160deg,#DCEAF5,#C3DCED); border-color:#5B87A8; }
+  .verse-card.vc1 h2, .verse-card.vc1 .verse-ref{ color:#2C4F66; }
+  .verse-card.vc1 .verse-text{ color:#1F3A4D; }
+  .verse-card.vc1 .verse-source{ color:#5B7B93; }
+
+  .verse-card.vc2{ background:linear-gradient(160deg,#DFEFDD,#C7E2C2); border-color:#5E9159; }
+  .verse-card.vc2 h2, .verse-card.vc2 .verse-ref{ color:#33532E; }
+  .verse-card.vc2 .verse-text{ color:#233A20; }
+  .verse-card.vc2 .verse-source{ color:#6A8A63; }
+
+  .verse-card.vc3{ background:linear-gradient(160deg,#1E2A44,#16203A); border-color:#3E5478; }
+  .verse-card.vc3 h2, .verse-card.vc3 .verse-ref{ color:#B9CCE3; }
+  .verse-card.vc3 .verse-text{ color:#E8EEF6; }
+  .verse-card.vc3 .verse-source{ color:#8CA1BE; }
+
+  .verse-card.vc4{ background:linear-gradient(160deg,#E7E3DA,#D6D0C2); border-color:#8A8060; }
+  .verse-card.vc4 h2, .verse-card.vc4 .verse-ref{ color:#5A5340; }
+  .verse-card.vc4 .verse-text{ color:#3A3524; }
+  .verse-card.vc4 .verse-source{ color:#8A8060; }
+
+  .verse-card.vc5{ background:linear-gradient(160deg,#E9D9C4,#D8BE9C); border-color:#A9784A; }
+  .verse-card.vc5 h2, .verse-card.vc5 .verse-ref{ color:#6B4423; }
+  .verse-card.vc5 .verse-text{ color:#4A2F17; }
+  .verse-card.vc5 .verse-source{ color:#9A7B54; }
+
+  .verse-card.vc6{ background:linear-gradient(160deg,#D7EEEA,#B9DED6); border-color:#3E8C7E; }
+  .verse-card.vc6 h2, .verse-card.vc6 .verse-ref{ color:#2C6459; }
+  .verse-card.vc6 .verse-text{ color:#1E4038; }
+  .verse-card.vc6 .verse-source{ color:#5E958A; }
   .card{background:var(--cream-alt); border-radius:12px; padding:14px 16px; margin-bottom:14px; border:1px solid #e0d8c0;}
   .card h2{margin:0 0 10px; font-size:.9rem; text-transform:uppercase; letter-spacing:1px; color:var(--khaki-dark);}
   .subnote{font-size:.75rem; color:var(--taupe); font-style:italic; margin:-4px 0 10px;}
@@ -69,6 +134,13 @@
     width:100%; padding:9px 10px; border-radius:7px; border:1px solid #d8cca3;
     background:var(--gold-light); font-family:inherit; font-size:.92rem; color:var(--text-dark);
   }
+  select{
+    -webkit-appearance:none; appearance:none; cursor:pointer;
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='%23534B32'><path d='M5.5 7.5l4.5 5 4.5-5z'/></svg>");
+    background-repeat:no-repeat; background-position:right 10px center; background-size:16px;
+    padding-right:32px; border-width:1.5px;
+  }
+  select:active, select:focus{ border-color:var(--khaki-dark); outline:none; }
   textarea{resize:vertical; min-height:55px;}
   .row2{display:flex; gap:8px;}
   .row2 > div{flex:1;}
@@ -81,9 +153,9 @@
   .kpi{flex:1; border-radius:10px; padding:12px 6px; text-align:center; color:var(--text-light);}
   .kpi .label{font-size:.62rem; text-transform:uppercase; letter-spacing:.5px; opacity:.9;}
   .kpi .value{font-size:1.4rem; font-weight:bold; margin-top:4px;}
-  .kpi.taux{background:var(--olive);}
-  .kpi.rest{background:var(--khaki-med);}
-  .kpi.pages{background:var(--gold);}
+  .kpi.taux{background:var(--kpi-taux);}
+  .kpi.rest{background:var(--kpi-rest);}
+  .kpi.pages{background:var(--kpi-pages);}
   .banner{border-radius:10px; padding:16px; text-align:center; font-weight:bold; font-size:1.05rem;}
   .banner.late{background:var(--gold-light); color:var(--red);}
   .banner.ok{background:var(--gold-light); color:var(--green);}
@@ -93,6 +165,9 @@
     margin-top:10px; background:var(--gold-light); color:#8A6D3D; font-weight:bold;
     font-size:.85rem; text-align:center; border-radius:8px; padding:10px;
   }
+  .reminder.warn{ background:#F5E3DE; color:var(--red); }
+  .reminder.great{ background:#E1EFE3; color:var(--green); }
+  .reminder.good{ background:var(--gold-light); color:var(--olive); }
   .donut-wrap{display:flex; justify-content:center; margin:10px 0;}
   .entry{
     background:var(--cream); border:1px solid #e5dcc0; border-radius:8px; padding:10px;
@@ -101,6 +176,23 @@
   .entry .meta{color:var(--khaki-med); font-weight:bold; font-size:.75rem; margin-bottom:4px;}
   .entry .del{float:right; color:var(--red); cursor:pointer; font-size:.75rem;}
   .empty{color:var(--taupe); font-style:italic; font-size:.85rem;}
+
+  /* --- Ajouts : vidéo du jour --- */
+  .video-wrap{ position:relative; padding-bottom:56.25%; height:0; overflow:hidden; border-radius:10px; background:#000; }
+  .video-wrap iframe{ position:absolute; top:0; left:0; width:100%; height:100%; border:0; }
+
+  /* --- Ajouts : plans thématiques --- */
+  .theme-plan-card details{ margin-top:8px; }
+  .theme-day{
+    background:var(--cream); border:1px solid #e5dcc0; border-radius:8px; padding:10px;
+    margin-bottom:8px; font-size:.85rem; line-height:1.4;
+  }
+  .theme-day.done{ opacity:.55; }
+  .theme-day input[type=checkbox]{ width:auto; margin:2px 0 0; }
+
+  /* --- Ajouts : rappels / notifications --- */
+  #notifStatus.on{ color:var(--green); }
+  #notifStatus.off{ color:var(--taupe); }
 
   /* --- Ajouts : synchronisation & connexion --- */
   .syncbadge{
@@ -129,9 +221,83 @@
   .poslivre.current{color:var(--text-dark); font-weight:bold; background:var(--gold-light); border-radius:5px; padding-left:6px;}
   .poslivre.todo{color:var(--taupe);}
 
+  /* =========================================================================
+     PALETTES DE COULEURS — choisies dans Paramètres. On redéfinit juste les
+     variables de couleur ; comme tout le CSS ci-dessus les utilise déjà,
+     tout le style de l'appli (y compris le verset du jour) suit automatiquement.
+     ========================================================================= */
+  html[data-palette="bleu"]{
+    --khaki-dark:#2C3E5C; --khaki-med:#6D84A8; --gold:#5B7FA6; --gold-light:#DCE6F2;
+    --taupe:#8FA0B8; --olive:#33507A; --cream:#F5F8FC; --cream-alt:#E8EFF7;
+  }
+  html[data-palette="rose"]{
+    --khaki-dark:#7A4356; --khaki-med:#B47B8C; --gold:#C98A9C; --gold-light:#F5DEE4;
+    --taupe:#C6A0AA; --olive:#8C4F63; --cream:#FDF6F7; --cream-alt:#F8E9EC;
+  }
+  html[data-palette="vert"]{
+    --khaki-dark:#3B5240; --khaki-med:#71937A; --gold:#7FA087; --gold-light:#DCEADB;
+    --taupe:#9AB29E; --olive:#2F4A38; --cream:#F6FAF5; --cream-alt:#E9F2E7;
+  }
+  html[data-palette="violet"]{
+    --khaki-dark:#4B3B66; --khaki-med:#8672A3; --gold:#9B84C0; --gold-light:#E9E0F5;
+    --taupe:#B0A0C8; --olive:#5A3F80; --cream:#FAF7FD; --cream-alt:#F1E9F8;
+  }
+
+  /* =========================================================================
+     FONDS D'ÉCRAN — dégradés décoratifs (aucune image à charger, donc ça
+     marche aussi hors-ligne). Choisi dans Paramètres, appliqué sur <body>.
+     ========================================================================= */
+  body[data-bg="mer"]{
+    background:
+      radial-gradient(circle at 15% -10%, rgba(255,255,255,.35), transparent 40%),
+      radial-gradient(circle at 100% 10%, rgba(13,110,140,.30), transparent 45%),
+      radial-gradient(circle at 50% 115%, rgba(10,70,95,.35), transparent 55%),
+      linear-gradient(180deg, #DFF3F6, #A9D8DE 55%, #4F97A6);
+    background-attachment:fixed;
+  }
+  body[data-bg="plage"]{
+    background:
+      radial-gradient(circle at 10% -10%, rgba(255,244,214,.6), transparent 45%),
+      radial-gradient(circle at 100% 0%, rgba(120,196,199,.35), transparent 45%),
+      radial-gradient(circle at 50% 130%, rgba(214,178,122,.5), transparent 60%),
+      linear-gradient(180deg, #EAF6F3 0%, #F3E7C4 55%, #E7C88C 100%);
+    background-attachment:fixed;
+  }
+  body[data-bg="nuages"]{
+    background:
+      radial-gradient(circle at 20% 0%, rgba(255,255,255,.8), transparent 40%),
+      radial-gradient(circle at 85% 15%, rgba(255,255,255,.6), transparent 38%),
+      radial-gradient(circle at 50% 100%, rgba(255,255,255,.55), transparent 50%),
+      linear-gradient(180deg, #DCEBF7, #EFF6FB 60%, #F8FBFD);
+    background-attachment:fixed;
+  }
+  body[data-bg="ciel"]{
+    background:
+      radial-gradient(circle at 15% -10%, rgba(255,255,255,.4), transparent 40%),
+      radial-gradient(circle at 100% 100%, rgba(255,236,196,.4), transparent 45%),
+      linear-gradient(180deg, #1E6FB0 0%, #5AA6DD 45%, #BEE1F5 100%);
+    background-attachment:fixed;
+  }
+  body[data-bg="aurore"]{
+    background:
+      radial-gradient(circle at 20% 0%, rgba(90,220,170,.45), transparent 45%),
+      radial-gradient(circle at 80% 10%, rgba(150,110,220,.45), transparent 45%),
+      radial-gradient(circle at 50% 40%, rgba(230,110,200,.28), transparent 55%),
+      radial-gradient(circle at 50% 110%, rgba(60,90,160,.4), transparent 55%),
+      linear-gradient(180deg, #0B1330, #131B3E 55%, #1C1440);
+    background-attachment:fixed;
+  }
+  @media (min-width:700px){
+    body[data-bg="mer"], body[data-bg="plage"], body[data-bg="nuages"],
+    body[data-bg="ciel"], body[data-bg="aurore"]{
+      background-size:100% 140%;
+      background-position:top;
+    }
+  }
+
   /* --- Ajouts : rapport imprimable / export PDF --- */
   @media print{
-    body{ padding:0; max-width:100%; background:#fff; }
+    body, body[data-bg]{ padding:0; max-width:100%; background:#fff !important; }
     h1{ background:none; color:var(--text-dark); border:2px solid var(--khaki-dark); }
     .no-print, button, input, select, textarea, label,
     .syncbadge, #loginScreen, #accountBox, .reminder{ display:none !important; }
