@@ -667,6 +667,35 @@ function toggleNotifs(){
     else if(perm === 'denied') alert("Les notifications sont bloquées pour cette appli dans les réglages de ton navigateur/téléphone. Autorise-les si tu changes d'avis.");
   });
 }
+/* Proposition d'activer les rappels, une seule fois à la première ouverture
+   (ou tant qu'on n'a pas répondu) : on ne déclenche la VRAIE demande du
+   navigateur qu'après un clic explicite sur "Activer" — sur iPhone/iPad
+   notamment, demander la permission sans geste de la personne ne marche pas
+   toujours et peut être ignoré silencieusement. */
+const NOTIF_PROMPT_VU_CLE = 'bible-tracker-notif-prompt-vu';
+function verifierPromptNotifications(){
+  try{
+    if(!('Notification' in window)) return;
+    if(Notification.permission !== 'default') return; // déjà répondu (autorisé ou bloqué)
+    if(localStorage.getItem(NOTIF_PROMPT_VU_CLE)) return; // déjà proposé une fois
+    const overlay = document.getElementById('notifPromptOverlay');
+    if(overlay) overlay.hidden = false;
+  }catch(e){}
+}
+function repondrePromptNotif(accepter){
+  try{ localStorage.setItem(NOTIF_PROMPT_VU_CLE, '1'); }catch(e){}
+  const overlay = document.getElementById('notifPromptOverlay');
+  if(overlay) overlay.hidden = true;
+  if(!accepter) return;
+  if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
+  Notification.requestPermission().then(perm=>{
+    state.settings.notifs = (perm === 'granted');
+    try{ persist(); }catch(e){ console.error('Erreur de sauvegarde (notifs) :', e); }
+    updateNotifUI();
+    if(perm === 'granted') checkAndNotify(true);
+  }).catch(e=> console.error(e));
+}
+
 function checkAndNotify(force){
   if(!state.settings || !state.settings.notifs) return;
   if(!('Notification' in window) || Notification.permission !== 'granted') return;
@@ -760,6 +789,7 @@ function initCloudIfConfigured(){
         currentUser = user;
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('appShell').style.display = '';
+        setTimeout(verifierPromptNotifications, 900);
         const securiteTabBtn = document.getElementById('securiteTabBtn');
         if(securiteTabBtn) securiteTabBtn.style.display = '';
         renderSecurityCard(user);
@@ -821,6 +851,7 @@ function initCloudIfConfigured(){
     const login = document.getElementById('loginScreen');
     if(shell) shell.style.display = '';
     if(login) login.style.display = 'none';
+    setTimeout(verifierPromptNotifications, 900);
   }
 }
 
@@ -2752,7 +2783,7 @@ function afficherRapportGroupe(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=17').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=18').catch(()=>{});
   });
 }
 
@@ -2778,6 +2809,7 @@ function initialGateDisplay(){
   } else {
     if(shell) shell.style.display = '';
     if(login) login.style.display = 'none';
+    setTimeout(verifierPromptNotifications, 900);
   }
 }
 initialGateDisplay();

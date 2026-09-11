@@ -760,6 +760,21 @@
     }
   }
 
+  /* --- Ajouts : proposition d'activer les rappels à l'ouverture --- */
+  .notif-prompt-overlay[hidden]{ display:none; }
+  .notif-prompt-overlay{
+    position:fixed; inset:0; background:rgba(58,53,36,.55); z-index:200;
+    display:flex; align-items:center; justify-content:center; padding:20px;
+  }
+  .notif-prompt-box{
+    background:var(--cream); border-radius:16px; padding:28px 24px; max-width:340px;
+    text-align:center; box-shadow:0 10px 30px rgba(0,0,0,.25);
+  }
+  .notif-prompt-icon{ font-size:2.4rem; margin-bottom:8px; }
+  .notif-prompt-box h2{ margin:0 0 8px; font-size:1.15rem; color:var(--khaki-dark); }
+  .notif-prompt-box .subnote{ margin-bottom:16px; }
+  .notif-prompt-box button{ width:100%; }
+
   /* --- Ajouts : "En groupe" (prière / lecture à plusieurs) --- */
   .groupe-vue[hidden]{ display:none; }
   /* #sessionLivreTrouve utilise la classe .stats-grid (display:grid) : sans

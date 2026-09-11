@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Lato:ital,wght@0,400;0,700;1,400;1,700&family=Poppins:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Nunito:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=17">
+<link rel="stylesheet" href="style.css?v=18">
 </head>
 <body>
 
@@ -145,6 +145,18 @@
   <button data-page="parametres" onclick="showPage('parametres')">⚙️ Paramètres</button>
 </nav>
 <div id="menuOverlay" class="menu-overlay no-print" onclick="toggleMenu()"></div>
+
+<!-- Proposé une seule fois, à la toute première ouverture (ou tant qu'on n'a
+     pas répondu) : demande si on accepte les rappels de lecture. -->
+<div id="notifPromptOverlay" class="notif-prompt-overlay no-print" hidden>
+  <div class="notif-prompt-box">
+    <div class="notif-prompt-icon">🔔</div>
+    <h2>Activer les rappels de lecture ?</h2>
+    <p class="subnote">Reçois une petite notification si tu n'as pas enregistré de lecture depuis quelques jours. Tu pourras changer d'avis à tout moment dans Paramètres → Rappels.</p>
+    <button onclick="repondrePromptNotif(true)">🔔 Activer les rappels</button>
+    <button onclick="repondrePromptNotif(false)" style="background:none; color:var(--khaki-med);">Plus tard</button>
+  </div>
+</div>
 
 <div id="syncBadge" class="syncbadge local no-print">⚪ Mode local (non synchronisé)</div>
 
@@ -624,7 +636,7 @@
 <script src="video-config.js"></script>
 <script src="music-config.js"></script>
 <script src="livres-config.js"></script>
-<script src="script.js?v=17"></script>
+<script src="script.js?v=18"></script>
 <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>
