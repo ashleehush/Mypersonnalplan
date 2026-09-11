@@ -473,7 +473,8 @@ function renderMusicOfDay(){
   // Spotify se chargeant lui-même de faire défiler les titres.
   const spotifyId = (typeof spotifyPlaylistUrl !== 'undefined') ? extractSpotifyPlaylistId(spotifyPlaylistUrl) : null;
   if(spotifyId){
-    if(card) card.style.display = '';
+    if(card) card.dataset.hasContent = '1';
+    updateMusicBarVisibility();
     box.innerHTML = '<div class="spotify-wrap"><iframe src="https://open.spotify.com/embed/playlist/'+spotifyId+'?utm_source=generator" '
       + 'title="Louange & adoration" allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" loading="lazy"></iframe></div>';
     return;
@@ -483,11 +484,13 @@ function renderMusicOfDay(){
   // vidéo du jour) : un titre différent choisi automatiquement chaque jour.
   const ids = getMusicIds();
   if(!ids.length){
-    if(card) card.style.display = 'none';
+    if(card) card.dataset.hasContent = '0';
+    updateMusicBarVisibility();
     box.innerHTML = '';
     return;
   }
-  if(card) card.style.display = '';
+  if(card) card.dataset.hasContent = '1';
+  updateMusicBarVisibility();
   const start = new Date(new Date().getFullYear(), 0, 0);
   const dayOfYear = Math.floor((new Date() - start) / 86400000);
   const id = ids[(dayOfYear + 17) % ids.length];
@@ -501,6 +504,18 @@ function renderMusicOfDay(){
     + '<div style="width:0; height:0; overflow:hidden;"><div id="ytAudioMount"></div></div>'
     + '</div>';
   createYtAudioPlayer(id);
+}
+/* La barre "Louange & adoration" ne s'affiche que sur la page Accueil,
+   mais elle reste montée en dehors de #appRoot (voir le commentaire dans
+   index.html) donc le son continue de jouer sans interruption même sur
+   les autres pages — on ne fait que la masquer visuellement. */
+function updateMusicBarVisibility(){
+  const card = document.getElementById('musicCard');
+  if(!card) return;
+  const hasContent = card.dataset.hasContent === '1';
+  const accueil = document.getElementById('page-accueil');
+  const surAccueil = !!accueil && !accueil.hidden;
+  card.style.display = (hasContent && surAccueil) ? '' : 'none';
 }
 /* =========================================================================
    LECTEUR AUDIO CACHÉ POUR "LOUANGE & ADORATION" — utilise l'API YouTube
@@ -1129,9 +1144,9 @@ function renderPosition(){
   if(!box) return;
   const pos = currentPosition();
   if(pos.nbTermines >= pos.total){
-    box.textContent = "🎉 Bravo, tu as terminé les 66 livres de la Bible !";
+    box.innerHTML = "🎉 <strong>" + pos.nbTermines + "/" + pos.total + "</strong> — Bravo, tu as terminé les 66 livres de la Bible !";
   } else {
-    box.innerHTML = "Position actuelle : <strong>" + pos.nbTermines + " livre" + (pos.nbTermines>1?"s":"") + " sur " + pos.total + "</strong> entièrement lu" + (pos.nbTermines>1?"s":"") + ".";
+    box.innerHTML = "<strong>" + pos.nbTermines + "/" + pos.total + "</strong> livre" + (pos.nbTermines>1?"s":"") + " entièrement lu" + (pos.nbTermines>1?"s":"") + ".";
   }
   const list = document.getElementById('positionList');
   if(!list) return;
@@ -1172,15 +1187,22 @@ function compute(){
     const joursEcoules = daysBetween(planStart, today);
     const attendu = Math.min(joursEcoules, TOTAL_CHAPTERS);
     const ecart = attendu - lus;
-    if(ecart > 0){
+    // Statut à 3 niveaux avec une marge de tolérance de 2 jours avant de
+    // basculer en "à la traîne" : un petit retard de 1 ou 2 chapitres reste
+    // "dans les clous" (ça arrive de rattraper le lendemain), mais au-delà
+    // de 2 jours de retard cumulé, c'est signalé clairement.
+    if(ecart > 2){
       banner.className = "banner late";
-      banner.textContent = "⚠ EN RETARD DE " + ecart + " CHAPITRE(S) (global)";
+      banner.textContent = "⚠ À LA TRAÎNE — " + ecart + " CHAPITRE(S) DE RETARD (global)";
+    } else if(ecart > 0){
+      banner.className = "banner ok";
+      banner.textContent = "✓ DANS LES CLOUS — " + ecart + " chapitre(s) à rattraper";
     } else if(ecart === 0){
       banner.className = "banner ok";
-      banner.textContent = "✓ À JOUR — objectif atteint";
+      banner.textContent = "✓ DANS LES CLOUS — objectif du jour atteint";
     } else {
-      banner.className = "banner ok";
-      banner.textContent = "✓ EN AVANCE DE " + (-ecart) + " CHAPITRE(S) (global)";
+      banner.className = "banner ahead";
+      banner.textContent = "🚀 EN AVANCE DE " + (-ecart) + " CHAPITRE(S) (global)";
     }
     detail.textContent = "Objectif : 1 chapitre par jour, peu importe le livre  ·  ~" + attendu + " chapitres attendus au total  ·  Tu en as lu " + lus;
   }
@@ -1230,8 +1252,9 @@ function renderReminder(today){
   }
 }
 
-function drawDonut(taux){
-  const svg = document.getElementById('donut');
+function drawDonut(taux, svgId){
+  const svg = document.getElementById(svgId || 'donut');
+  if(!svg) return;
   const r = 60, cx=80, cy=80, circ = 2*Math.PI*r;
   const luLen = circ*taux;
   svg.innerHTML = `
@@ -1977,6 +2000,7 @@ function showPage(id){
   if(id === 'plans') renderThematicPlans();
   if(id === 'parametres') updateNotifUI();
   if(id === 'en-groupe') afficherVueListeGroupes();
+  updateMusicBarVisibility();
   closeMenu();
   window.scrollTo(0,0);
 }
@@ -2147,16 +2171,21 @@ function renderRapportPreview(){
         <div class="stat-tile"><div class="stat-tile-value">${totalPages}</div><div class="stat-tile-label">Pages lues au total (est.)</div></div>
         <div class="stat-tile"><div class="stat-tile-value">${livresLus}/66</div><div class="stat-tile-label">Livres terminés</div></div>
       </div>
+      <div class="donut-wrap"><svg id="donutRapport" width="130" height="130" viewBox="0 0 160 160"></svg></div>
     </div>
     <div class="card">
       <h2>📚 Chapitres lus par livre</h2>
-      ${booksBarChart}
+      <details open>
+        <summary>Voir / masquer le détail par livre</summary>
+        <div style="margin-top:10px;">${booksBarChart}</div>
+      </details>
     </div>
     <div class="card">
       <h2>🕊️ Plans thématiques</h2>
       ${plansPie}
     </div>
   `;
+  drawDonut(lus/TOTAL_CHAPTERS, 'donutRapport');
 }
 
 function printReport(){
@@ -2950,7 +2979,7 @@ function afficherRapportGroupe(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=20').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=21').catch(()=>{});
   });
 }
 

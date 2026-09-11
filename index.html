@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Lato:ital,wght@0,400;0,700;1,400;1,700&family=Poppins:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Nunito:ital,wght@0,400;0,700;1,400;1,700&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20">
+<link rel="stylesheet" href="style.css?v=21">
 </head>
 <body>
 
@@ -193,7 +193,10 @@
 
   <div class="card">
     <h2>📍 Ma position actuelle</h2>
-    <div id="positionCurrent" class="detail" style="margin-top:0;"></div>
+    <div class="position-row">
+      <div class="donut-wrap donut-wrap-small"><svg id="donut" width="86" height="86" viewBox="0 0 160 160"></svg></div>
+      <div id="positionCurrent" class="detail" style="margin-top:0;"></div>
+    </div>
     <details style="margin-top:10px;">
       <summary>Voir le détail des 66 livres</summary>
       <div id="positionList" style="margin-top:10px; max-height:280px; overflow-y:auto;"></div>
@@ -204,11 +207,6 @@
     <div class="card" id="booksCard" style="display:none;">
       <h2>📚 Suggestion de lecture chrétienne</h2>
       <div id="bookOfDay"></div>
-    </div>
-
-    <div class="card">
-      <h2>Avancement global</h2>
-      <div class="donut-wrap"><svg id="donut" width="150" height="150" viewBox="0 0 160 160"></svg></div>
     </div>
   </div>
 
@@ -249,6 +247,7 @@
     <label>Date</label>
     <input type="date" id="logDate">
     <button onclick="addLog()">Ajouter au journal</button>
+    <p style="font-size:.78rem; font-style:italic; opacity:.7; margin:10px 0 0;">💡 N'oublie pas de prendre des notes dans « Mes notes ».</p>
     <div id="logList" style="margin-top:12px;"></div>
   </div>
 </section>
@@ -639,7 +638,7 @@
 <script src="video-config.js"></script>
 <script src="music-config.js"></script>
 <script src="livres-config.js"></script>
-<script src="script.js?v=20"></script>
+<script src="script.js?v=21"></script>
 <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>

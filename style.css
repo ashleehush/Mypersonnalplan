@@ -27,9 +27,11 @@
     --cream:#FBF7EF; --cream-alt:#F0E9D8; --khaki-dark:#534B32; --khaki-med:#8A8060;
     --gold:#B7975A; --gold-light:#EBDFC2; --taupe:#A79C7E; --olive:#6B6440;
     --text-dark:#3A3524; --text-light:#FBF7EF; --red:#B3261E; --green:#2E5E3A;
-    /* Couleurs fixes des 3 cases (Taux / Ch. restants / Pages rest.) — volontairement
-       PAS dans les blocs de palette ci-dessous : elles ne changent jamais, quelle que
-       soit la palette choisie, et n'utilisent jamais orange/rouge/violet/rose. */
+    /* Couleurs utilisées uniquement comme légende du graphique "Chapitres
+       terminés / en cours / non commencés" dans Rapports. Les 3 tuiles
+       Taux / Ch. restants / Pages rest. de l'Accueil sont maintenant fond
+       blanc + texte noir en dur (voir .kpi ci-dessous), fixe quelle que
+       soit la palette choisie. */
     --kpi-taux:#2E6B5E; --kpi-rest:#4A5D7A; --kpi-pages:#A9812F;
   }
   *{box-sizing:border-box;}
@@ -151,15 +153,16 @@
   }
   button:active{opacity:.85;}
   .kpis{display:flex; gap:8px; margin-bottom:14px;}
-  .kpi{flex:1; border-radius:10px; padding:12px 6px; text-align:center; color:var(--text-light);}
-  .kpi .label{font-size:.62rem; text-transform:uppercase; letter-spacing:.5px; opacity:.9;}
+  .kpi{flex:1; border-radius:10px; padding:12px 6px; text-align:center; color:#000; background:#fff; border:1px solid #e0d8c0;}
+  .kpi .label{font-size:.62rem; text-transform:uppercase; letter-spacing:.5px; opacity:.75;}
   .kpi .value{font-size:1.4rem; font-weight:bold; margin-top:4px;}
-  .kpi.taux{background:var(--kpi-taux);}
-  .kpi.rest{background:var(--kpi-rest);}
-  .kpi.pages{background:var(--kpi-pages);}
+  .kpi.taux{background:#fff;}
+  .kpi.rest{background:#fff;}
+  .kpi.pages{background:#fff;}
   .banner{border-radius:10px; padding:16px; text-align:center; font-weight:bold; font-size:1.05rem;}
   .banner.late{background:var(--gold-light); color:var(--red);}
   .banner.ok{background:var(--gold-light); color:var(--green);}
+  .banner.ahead{background:var(--gold-light); color:var(--green);}
   .banner.notstarted{background:var(--gold-light); color:var(--khaki-med);}
   .detail{text-align:center; font-size:.78rem; color:var(--taupe); margin-top:8px; font-style:italic;}
   .reminder{
@@ -170,6 +173,9 @@
   .reminder.great{ background:#E1EFE3; color:var(--green); }
   .reminder.good{ background:var(--gold-light); color:var(--olive); }
   .donut-wrap{display:flex; justify-content:center; margin:10px 0;}
+  .position-row{display:flex; align-items:center; gap:14px;}
+  .donut-wrap-small{margin:0; flex:0 0 auto;}
+  .position-row .detail{margin-top:0; flex:1;}
   .entry{
     background:var(--cream); border:1px solid #e5dcc0; border-radius:8px; padding:10px;
     margin-bottom:8px; font-size:.85rem;
