@@ -485,6 +485,36 @@ function toggleMusicPlayback(){
   const s = ytPlayer.getPlayerState();
   if(s === 1){ ytPlayer.pauseVideo(); } else { ytPlayer.playVideo(); }
 }
+
+/* =========================================================================
+   PROPOSITIONS DE LIVRES CHRÉTIENS — même principe que le verset du jour :
+   une suggestion différente chaque jour, tirée de livres-config.js (rempli
+   par toi). Le reste de la liste reste consultable via "Voir toutes mes
+   suggestions".
+   ========================================================================= */
+function renderBookOfDay(){
+  const card = document.getElementById('booksCard');
+  const box = document.getElementById('bookOfDay');
+  const listBox = document.getElementById('booksList');
+  if(!box) return;
+  const books = (typeof livresChretiens !== 'undefined' && Array.isArray(livresChretiens)) ? livresChretiens : [];
+  if(!books.length){
+    if(card) card.style.display = 'none';
+    box.innerHTML = '';
+    if(listBox) listBox.innerHTML = '';
+    return;
+  }
+  if(card) card.style.display = '';
+  const start = new Date(new Date().getFullYear(), 0, 0);
+  const dayOfYear = Math.floor((new Date() - start) / 86400000);
+  const b = books[dayOfYear % books.length];
+  box.innerHTML = '<div class="book-suggestion"><div class="book-title">'+b.titre+'</div><div class="book-author">'+b.auteur+'</div></div>';
+  if(listBox){
+    listBox.innerHTML = books.map(x=>
+      '<div class="book-suggestion"><div class="book-title">'+x.titre+'</div><div class="book-author">'+x.auteur+'</div></div>'
+    ).join('');
+  }
+}
 /* Replie/déplie le lecteur "Louange & adoration" — repliée, la musique
    continue à jouer (on ne fait que la rétrécir visuellement à 0 avec
    max-height, jamais display:none, qui coupe le son de l'iframe dans
@@ -594,7 +624,7 @@ function initCloudIfConfigured(){
             if(!state.settings) state.settings = {palette:'dore', bg:'dore'};
             document.getElementById('dateDebut').value = state.dateDebut;
             renderLog(); renderComp(); renderPrayers(); compute(); refreshVerseSelects();
-            applyAppearance(); updateNotifUI(); renderVideoOfDay(); renderMusicOfDay(); renderThematicPlans();
+            applyAppearance(); updateNotifUI(); renderVideoOfDay(); renderMusicOfDay(); renderBookOfDay(); renderThematicPlans();
             checkAndNotify();
           } else {
             // premier lancement pour ce compte : on crée le document
@@ -649,7 +679,7 @@ async function loadState(){
     document.getElementById('dateDebut').value = state.dateDebut;
     document.getElementById('logDate').value = todayStr();
     renderLog(); renderComp(); renderPrayers(); compute(); refreshVerseSelects();
-    applyAppearance(); updateNotifUI(); renderVideoOfDay(); renderMusicOfDay(); renderThematicPlans();
+    applyAppearance(); updateNotifUI(); renderVideoOfDay(); renderMusicOfDay(); renderBookOfDay(); renderThematicPlans();
     checkAndNotify();
   } else {
     document.getElementById('logDate').value = todayStr();
@@ -1662,7 +1692,7 @@ function printReport(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=6').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=7').catch(()=>{});
   });
 }
 
