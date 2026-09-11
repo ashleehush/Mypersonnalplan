@@ -15,8 +15,8 @@
    Si les deux sont vides, la carte "Musique du jour" reste masquée.
    ========================================================================= */
 const spotifyPlaylistUrl = "";
-// Exemple : ""
+// Exemple : "https://open.spotify.com/playlist/37i9dQZF1DXcfZ6moR6J0G"
 
 const musicLinks = [
-  "https://youtube.com/watch?v=kNWiu6BNcEA&is=uummZSK6VEgj0WG-",
+  // "https://www.youtube.com/watch?v=XXXXXXXXXXX",
 ];

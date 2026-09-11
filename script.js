@@ -723,7 +723,7 @@ function repondrePromptNotif(accepter){
    en mode local, il n'y a personne pour lire l'avis, donc on ne le demande
    jamais.
    ========================================================================= */
-const ADMIN_EMAIL = 'ashleymubama@gmail.com';
+const ADMIN_EMAIL = 'ashleymubama@outlook.fr';
 function estAdmin(user){
   return !!(user && user.email && user.email.toLowerCase() === ADMIN_EMAIL);
 }
@@ -3292,7 +3292,7 @@ function afficherRapportGroupe(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=25').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=26').catch(()=>{});
   });
 }
 
