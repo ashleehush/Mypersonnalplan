@@ -694,6 +694,7 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState 
    ========================================================================= */
 let useCloud = false;
 let cloudDocRef = null;
+let currentUser = null;
 // Mémorise le contenu exact du dernier envoi vers le cloud : quand un
 // "snapshot" arrive avec EXACTEMENT ce contenu, c'est juste l'écho de notre
 // propre écriture (rien de nouveau à appliquer). On compare le CONTENU plutôt
@@ -756,11 +757,17 @@ function initCloudIfConfigured(){
         }
         marquerConnexionReussie(user);
         useCloud = true;
+        currentUser = user;
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('appShell').style.display = '';
         const securiteTabBtn = document.getElementById('securiteTabBtn');
         if(securiteTabBtn) securiteTabBtn.style.display = '';
         renderSecurityCard(user);
+        // "En groupe" est une fonctionnalité à part (données partagées, pas
+        // seulement les tiennes) : si son démarrage échoue pour une raison
+        // quelconque, ça ne doit JAMAIS empêcher le reste de l'appli (tes
+        // lectures, prières, réglages...) de se synchroniser normalement.
+        try{ initGroupes(user); }catch(e){ console.error('Erreur au démarrage de "En groupe" :', e); }
         cloudDocRef = firebase.firestore().collection('users').doc(user.uid).collection('state').doc('main');
         setSyncBadge('connecting');
         cloudDocRef.onSnapshot(snap=>{
@@ -797,6 +804,8 @@ function initCloudIfConfigured(){
         });
       } else {
         useCloud = false;
+        currentUser = null;
+        arreterGroupes();
         pickLoginTheme();
         document.getElementById('loginScreen').style.display = 'flex';
         document.getElementById('appShell').style.display = 'none';
@@ -1932,6 +1941,7 @@ function showPage(id){
   if(id === 'rapports') renderRapportPreview();
   if(id === 'plans') renderThematicPlans();
   if(id === 'parametres') updateNotifUI();
+  if(id === 'en-groupe') afficherVueListeGroupes();
   closeMenu();
   window.scrollTo(0,0);
 }
@@ -2094,9 +2104,655 @@ function printReport(){
   window.print();
 }
 
+/* =========================================================================
+   EN GROUPE — prier ou lire un livre à plusieurs, en direct.
+   Ceci est un espace PARTAGÉ entre plusieurs comptes (contrairement au reste
+   de l'appli qui n'appartient qu'à toi) : les données vivent dans des
+   collections Firestore séparées ("groups"), pas dans ton document
+   personnel "state". Ça ne fonctionne donc que connectée à internet.
+   ========================================================================= */
+
+// Une couleur différente par participant, dans l'ordre où ils rejoignent le
+// groupe. Si plus de 8 personnes rejoignent, les couleurs se répètent.
+const COULEURS_PARTICIPANTS = ['#B7975A','#2E6B5E','#4A5D7A','#A9812F','#7A4A6B','#3A6B4A','#6B4A22','#5A5A9E'];
+
+let mesGroupes = [];
+let mesGroupesUnsub = null;
+let groupeActuel = null;
+let groupeActuelUnsub = null;
+let dernierNombreMembresConnu = null;
+let sessionsActuelles = [];
+let sessionsActuelUnsub = null;
+let sessionActuelle = null;
+let sessionActuelUnsub = null;
+let echangesActuels = [];
+let echangesActuelUnsub = null;
+let codeRejoindreEnAttente = null;
+let rechercheLivreTimer = null;
+
+function echapperHtml(txt){
+  return String(txt == null ? '' : txt)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+
+function getMonNomGroupe(){
+  if(state.settings && state.settings.nomAffichageGroupe) return state.settings.nomAffichageGroupe;
+  if(currentUser && currentUser.email) return currentUser.email.split('@')[0];
+  return 'Moi';
+}
+function setMonNomGroupe(v){
+  if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
+  state.settings.nomAffichageGroupe = (v||'').trim();
+  try{ persist(); }catch(e){ console.error('Erreur de sauvegarde (nom groupe) :', e); }
+}
+
+function prochaineCouleurDisponible(membres){
+  const utilisees = (membres||[]).map(m=>m.couleur);
+  const dispo = COULEURS_PARTICIPANTS.find(c=> !utilisees.includes(c));
+  return dispo || COULEURS_PARTICIPANTS[(membres||[]).length % COULEURS_PARTICIPANTS.length];
+}
+function couleurDuMembre(uid){
+  if(!groupeActuel || !groupeActuel.members) return 'var(--gold)';
+  const m = groupeActuel.members.find(x=>x.uid === uid);
+  return m ? m.couleur : 'var(--gold)';
+}
+function nomDuMembre(uid){
+  if(!groupeActuel || !groupeActuel.members) return '?';
+  const m = groupeActuel.members.find(x=>x.uid === uid);
+  return m ? m.nom : '?';
+}
+
+/* --- Démarrage / arrêt (appelés depuis onAuthStateChanged) --- */
+function initGroupes(user){
+  if(document.getElementById('groupeMonNomInput')) document.getElementById('groupeMonNomInput').value = getMonNomGroupe();
+  const sansCloud = document.getElementById('groupeSansCloud');
+  const contenu = document.getElementById('groupeContenu');
+  if(sansCloud) sansCloud.hidden = true;
+  if(contenu) contenu.hidden = false;
+
+  if(mesGroupesUnsub){ mesGroupesUnsub(); mesGroupesUnsub = null; }
+  try{
+    mesGroupesUnsub = firebase.firestore().collection('groups')
+      .where('memberUids', 'array-contains', user.uid)
+      .onSnapshot(snap=>{
+        mesGroupes = snap.docs.map(d=> Object.assign({id:d.id}, d.data()));
+        mesGroupes.sort((a,b)=> String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+        renderMesGroupes();
+      }, err=> console.error('Erreur de lecture des groupes :', err));
+  }catch(e){ console.error('Erreur au démarrage de "En groupe" :', e); }
+
+  // Rejoindre automatiquement si on est arrivée via un lien d'invitation
+  // (voir vérifierLienInvitationDansUrl(), appelée au chargement de la page).
+  if(codeRejoindreEnAttente){
+    const code = codeRejoindreEnAttente;
+    codeRejoindreEnAttente = null;
+    rejoindreGroupe(code);
+  }
+}
+function arreterGroupes(){
+  if(mesGroupesUnsub){ mesGroupesUnsub(); mesGroupesUnsub = null; }
+  fermerGroupe();
+  mesGroupes = [];
+  const sansCloud = document.getElementById('groupeSansCloud');
+  const contenu = document.getElementById('groupeContenu');
+  if(sansCloud) sansCloud.hidden = false;
+  if(contenu) contenu.hidden = true;
+}
+
+/* --- Vue 1 : liste des groupes --- */
+function afficherVueInterne(nom){
+  ['groupeVueListe','groupeVueDetail','groupeVueSession'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.hidden = (id !== nom);
+  });
+}
+function afficherVueListeGroupes(){
+  fermerSession();
+  fermerGroupe();
+  afficherVueInterne('groupeVueListe');
+  const nomInput = document.getElementById('groupeMonNomInput');
+  if(nomInput) nomInput.value = getMonNomGroupe();
+}
+function ouvrirCreationGroupe(){
+  document.getElementById('groupeRejoindreBox').hidden = true;
+  document.getElementById('groupeCreationBox').hidden = false;
+}
+function ouvrirRejoindreGroupe(){
+  document.getElementById('groupeCreationBox').hidden = true;
+  document.getElementById('groupeRejoindreBox').hidden = false;
+}
+function renderMesGroupes(){
+  const el = document.getElementById('groupesListe');
+  if(!el) return;
+  if(!mesGroupes.length){
+    el.innerHTML = '<div class="empty">Tu ne fais partie d\'aucun groupe pour l\'instant. Crées-en un, ou rejoins-en un avec un lien reçu.</div>';
+    return;
+  }
+  el.innerHTML = mesGroupes.map(g=>{
+    const puces = (g.members||[]).map(m=>
+      '<span class="groupe-membre-chip"><span class="groupe-membre-dot" style="background:'+m.couleur+'"></span>'+echapperHtml(m.nom)+'</span>'
+    ).join('');
+    return '<div class="groupe-carte" onclick="ouvrirGroupeById(\''+g.id+'\')">'
+      + '<div class="groupe-carte-nom">'+echapperHtml(g.nom)+'</div>'
+      + '<div class="groupe-membres">'+puces+'</div>'
+      + '</div>';
+  }).join('');
+}
+
+function creerGroupe(){
+  const nomInput = document.getElementById('groupeNouveauNom');
+  const nom = (nomInput.value||'').trim();
+  if(!nom){ alert('Donne un nom à ton groupe.'); return; }
+  if(!currentUser){ return; }
+  const ref = firebase.firestore().collection('groups').doc();
+  const moi = { uid: currentUser.uid, nom: getMonNomGroupe(), couleur: COULEURS_PARTICIPANTS[0] };
+  const donnees = {
+    nom: nom,
+    createdBy: currentUser.uid,
+    createdAt: new Date().toISOString(),
+    memberUids: [currentUser.uid],
+    members: [moi]
+  };
+  ref.set(nettoyerPourFirestore(donnees)).then(()=>{
+    nomInput.value = '';
+    document.getElementById('groupeCreationBox').hidden = true;
+    ouvrirGroupeById(ref.id);
+    // Premier réflexe demandé : inviter des gens avant de choisir un thème.
+    setTimeout(()=> ouvrirInviter(), 150);
+  }).catch(e=>{ console.error(e); alert("Le groupe n'a pas pu être créé : vérifie ta connexion internet et réessaie."); });
+}
+
+function extraireCodeGroupe(texte){
+  const t = (texte||'').trim();
+  const m = t.match(/[?&]rejoindre=([a-zA-Z0-9_-]+)/);
+  if(m) return m[1];
+  return t;
+}
+function rejoindreParSaisie(){
+  const input = document.getElementById('groupeCodeInput');
+  const code = extraireCodeGroupe(input.value);
+  const msg = document.getElementById('groupeRejoindreMsg');
+  if(!code){ return; }
+  msg.hidden = true;
+  rejoindreGroupe(code, msg);
+}
+function rejoindreGroupe(groupId, msgEl){
+  if(!currentUser) return;
+  firebase.firestore().collection('groups').doc(groupId).get().then(doc=>{
+    if(!doc.exists){
+      if(msgEl){ msgEl.textContent = "Groupe introuvable — vérifie le lien ou le code reçu."; msgEl.className = 'security-message security-message-error'; msgEl.hidden = false; }
+      showPage('en-groupe');
+      return;
+    }
+    const data = doc.data();
+    const dejaMembre = (data.memberUids||[]).includes(currentUser.uid);
+    if(!dejaMembre){
+      const couleur = prochaineCouleurDisponible(data.members);
+      const moi = { uid: currentUser.uid, nom: getMonNomGroupe(), couleur: couleur };
+      doc.ref.update({
+        memberUids: firebase.firestore.FieldValue.arrayUnion(currentUser.uid),
+        members: firebase.firestore.FieldValue.arrayUnion(moi)
+      }).then(()=>{
+        document.getElementById('groupeCodeInput').value = '';
+        document.getElementById('groupeRejoindreBox').hidden = true;
+        showPage('en-groupe');
+        ouvrirGroupeById(groupId);
+      }).catch(e=>{ console.error(e); if(msgEl){ msgEl.textContent = "Impossible de rejoindre pour l'instant, réessaie."; msgEl.className = 'security-message security-message-error'; msgEl.hidden = false; } });
+    } else {
+      showPage('en-groupe');
+      ouvrirGroupeById(groupId);
+    }
+  }).catch(e=>{
+    console.error(e);
+    if(msgEl){ msgEl.textContent = "Impossible de vérifier ce groupe pour l'instant, réessaie."; msgEl.className = 'security-message security-message-error'; msgEl.hidden = false; }
+  });
+}
+
+/* Lien d'invitation : au chargement de la page, si l'adresse contient
+   "?rejoindre=CODE" (lien cliqué depuis un SMS/WhatsApp/mail), on retient
+   le code et on rejoint automatiquement dès que la connexion est faite. */
+function verifierLienInvitationDansUrl(){
+  try{
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('rejoindre');
+    if(code){
+      codeRejoindreEnAttente = code;
+      // On nettoie l'adresse pour ne pas retenter de rejoindre à chaque
+      // rafraîchissement de la page.
+      const url = new URL(window.location.href);
+      url.searchParams.delete('rejoindre');
+      window.history.replaceState({}, '', url.toString());
+    }
+  }catch(e){}
+}
+
+/* --- Vue 2 : détail d'un groupe --- */
+function fermerGroupe(){
+  if(groupeActuelUnsub){ groupeActuelUnsub(); groupeActuelUnsub = null; }
+  if(sessionsActuelUnsub){ sessionsActuelUnsub(); sessionsActuelUnsub = null; }
+  groupeActuel = null;
+  dernierNombreMembresConnu = null;
+  sessionsActuelles = [];
+}
+function ouvrirGroupeById(id){
+  fermerSession();
+  fermerGroupe();
+  afficherVueInterne('groupeVueDetail');
+  document.getElementById('groupeInviterBox').hidden = true;
+  const select = document.getElementById('groupeTypeSelect');
+  if(select) select.value = '';
+  document.getElementById('groupeDemarrerBtn').hidden = true;
+  document.getElementById('groupeRapportBox').hidden = true;
+
+  groupeActuelUnsub = firebase.firestore().collection('groups').doc(id).onSnapshot(snap=>{
+    if(!snap.exists){ afficherVueListeGroupes(); return; }
+    const nouveau = Object.assign({id:snap.id}, snap.data());
+    if(dernierNombreMembresConnu !== null && nouveau.members.length > dernierNombreMembresConnu){
+      const dernier = nouveau.members[nouveau.members.length-1];
+      const bandeau = document.getElementById('groupeDetailNom');
+      if(bandeau){
+        const note = document.createElement('div');
+        note.className = 'security-message';
+        note.style.color = 'var(--green)';
+        note.textContent = '✅ ' + dernier.nom + ' vient de rejoindre le groupe !';
+        bandeau.after(note);
+        setTimeout(()=> note.remove(), 6000);
+      }
+    }
+    dernierNombreMembresConnu = nouveau.members.length;
+    groupeActuel = nouveau;
+    renderGroupeDetail();
+  }, err=> console.error('Erreur de lecture du groupe :', err));
+
+  sessionsActuelUnsub = firebase.firestore().collection('groups').doc(id).collection('sessions').onSnapshot(snap=>{
+    sessionsActuelles = snap.docs.map(d=> Object.assign({id:d.id}, d.data()));
+    sessionsActuelles.sort((a,b)=> String(b.createdAt||'').localeCompare(String(a.createdAt||'')));
+    renderHistorique();
+    if(sessionActuelle){
+      const maj = sessionsActuelles.find(s=> s.id === sessionActuelle.id);
+      if(maj) renderPresence(maj);
+    }
+  }, err=> console.error('Erreur de lecture des rencontres :', err));
+}
+function renderGroupeDetail(){
+  if(!groupeActuel) return;
+  document.getElementById('groupeDetailNom').textContent = groupeActuel.nom;
+  const el = document.getElementById('groupeMembresListe');
+  el.innerHTML = groupeActuel.members.map(m=>
+    '<span class="groupe-membre-chip"><span class="groupe-membre-dot" style="background:'+m.couleur+'"></span>'+echapperHtml(m.nom)
+    + (m.uid === groupeActuel.createdBy ? ' <span class="groupe-membre-statut">(organisateur)</span>' : '')
+    + '</span>'
+  ).join('');
+  const lien = window.location.origin + window.location.pathname + '?rejoindre=' + groupeActuel.id;
+  const lienInput = document.getElementById('groupeLienInvitation');
+  if(lienInput) lienInput.value = lien;
+}
+function ouvrirInviter(){
+  const box = document.getElementById('groupeInviterBox');
+  box.hidden = !box.hidden;
+}
+function partagerLienInvitation(){
+  const lien = document.getElementById('groupeLienInvitation').value;
+  const texte = 'Rejoins mon groupe "'+ (groupeActuel? groupeActuel.nom : '') +'" sur mon appli de lecture : ' + lien;
+  if(navigator.share){
+    navigator.share({ title:'Invitation au groupe', text: texte, url: lien }).catch(()=>{});
+  } else {
+    copierLienInvitation();
+  }
+}
+function copierLienInvitation(){
+  const lien = document.getElementById('groupeLienInvitation').value;
+  const msg = document.getElementById('groupeCopieMsg');
+  const fini = ()=>{ if(msg){ msg.textContent = 'Lien copié !'; msg.className='security-message'; msg.hidden=false; setTimeout(()=> msg.hidden = true, 3000); } };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(lien).then(fini).catch(()=>{
+      const input = document.getElementById('groupeLienInvitation'); input.select(); document.execCommand('copy'); fini();
+    });
+  } else {
+    const input = document.getElementById('groupeLienInvitation'); input.select(); document.execCommand('copy'); fini();
+  }
+}
+
+function onGroupeTypeChange(){
+  const v = document.getElementById('groupeTypeSelect').value;
+  document.getElementById('groupeDemarrerBtn').hidden = !v;
+}
+function demarrerNouvelleRencontre(){
+  const type = document.getElementById('groupeTypeSelect').value;
+  if(!type || !groupeActuel || !currentUser) return;
+  const base = {
+    type: type,
+    createdBy: currentUser.uid,
+    createdAt: new Date().toISOString(),
+    cloturee: false,
+    clotureeAt: null,
+    presence: {}
+  };
+  if(type === 'priere'){
+    Object.assign(base, { qui:'', sujet:'', priereFaite:false });
+  } else {
+    Object.assign(base, { date: todayStr(), livre:'', livreKey:'', nombrePages:null, pageActuelle:0 });
+  }
+  firebase.firestore().collection('groups').doc(groupeActuel.id).collection('sessions').add(nettoyerPourFirestore(base)).then(ref=>{
+    document.getElementById('groupeTypeSelect').value = '';
+    document.getElementById('groupeDemarrerBtn').hidden = true;
+    ouvrirSessionById(ref.id);
+  }).catch(e=>{ console.error(e); alert("Impossible de démarrer la rencontre, vérifie ta connexion et réessaie."); });
+}
+
+function continuerLecture(sessionPrecedenteId){
+  if(!groupeActuel) return;
+  const prec = sessionsActuelles.find(s=> s.id === sessionPrecedenteId);
+  if(!prec) return;
+  const nouvelle = {
+    type:'lecture', createdBy: currentUser.uid, createdAt: new Date().toISOString(),
+    cloturee:false, clotureeAt:null, presence:{},
+    date: todayStr(), livre: prec.livre, livreKey: prec.livreKey, nombrePages: prec.nombrePages,
+    pageActuelle: prec.pageActuelle || 0
+  };
+  firebase.firestore().collection('groups').doc(groupeActuel.id).collection('sessions').add(nettoyerPourFirestore(nouvelle)).then(ref=>{
+    ouvrirSessionById(ref.id);
+  }).catch(e=> console.error(e));
+}
+
+function renderHistorique(){
+  const el = document.getElementById('groupeHistorique');
+  if(!el) return;
+  if(!sessionsActuelles.length){
+    el.innerHTML = '<div class="empty">Aucune rencontre pour l\'instant.</div>';
+    return;
+  }
+  el.innerHTML = sessionsActuelles.map(s=>{
+    let titre, detail;
+    if(s.type === 'priere'){
+      titre = '🙏 ' + (s.qui ? echapperHtml(s.qui) : 'Sujet de prière');
+      detail = (s.date||s.createdAt||'').slice(0,10) + ' · ' + (s.priereFaite ? 'Prière faite' : (s.cloturee ? 'Terminée' : 'En cours'));
+    } else {
+      titre = '📖 ' + (s.livre ? echapperHtml(s.livre) : 'Lecture');
+      const pages = s.nombrePages ? (' — page '+(s.pageActuelle||0)+'/'+s.nombrePages) : '';
+      detail = (s.date||'') + pages + ' · ' + (s.cloturee ? 'Terminée' : 'En cours');
+    }
+    return '<div class="groupe-historique-item" onclick="ouvrirSessionById(\''+s.id+'\')">'
+      + '<div class="groupe-historique-titre">'+titre+'</div>'
+      + '<div class="groupe-historique-detail">'+detail+'</div>'
+      + '</div>';
+  }).join('');
+}
+
+/* --- Vue 3 : une rencontre (prière ou lecture) --- */
+function fermerSession(){
+  if(sessionActuelUnsub){ sessionActuelUnsub(); sessionActuelUnsub = null; }
+  if(echangesActuelUnsub){ echangesActuelUnsub(); echangesActuelUnsub = null; }
+  sessionActuelle = null;
+  echangesActuels = [];
+}
+// Depuis l'intérieur d'une rencontre : revenir au détail du groupe (sans le
+// quitter complètement, contrairement à afficherVueListeGroupes()).
+function retourAuGroupe(){
+  fermerSession();
+  afficherVueInterne('groupeVueDetail');
+}
+function ouvrirSessionById(id){
+  if(!groupeActuel) return;
+  if(sessionActuelUnsub){ sessionActuelUnsub(); sessionActuelUnsub = null; }
+  if(echangesActuelUnsub){ echangesActuelUnsub(); echangesActuelUnsub = null; }
+  afficherVueInterne('groupeVueSession');
+  const ref = firebase.firestore().collection('groups').doc(groupeActuel.id).collection('sessions').doc(id);
+  sessionActuelUnsub = ref.onSnapshot(snap=>{
+    if(!snap.exists) return;
+    sessionActuelle = Object.assign({id:snap.id}, snap.data());
+    renderSessionDetail();
+  }, err=> console.error(err));
+  echangesActuelUnsub = ref.collection('entries').onSnapshot(snap=>{
+    echangesActuels = snap.docs.map(d=> Object.assign({id:d.id}, d.data()));
+    echangesActuels.sort((a,b)=> String(a.horodatage||'').localeCompare(String(b.horodatage||'')));
+    renderEchanges();
+  }, err=> console.error(err));
+}
+
+// Ne remplace la valeur d'un champ QUE si ce n'est pas celui que la personne
+// est en train de remplir — sinon, les mises à jour des autres participants
+// effaceraient ce qu'on est en train de taper.
+function majInputSiPasActif(el, valeur){
+  if(!el) return;
+  if(document.activeElement !== el){ el.value = (valeur == null ? '' : valeur); }
+}
+function majCheckboxSiPasActif(el, valeur){
+  if(!el) return;
+  if(document.activeElement !== el){ el.checked = !!valeur; }
+}
+
+function renderSessionDetail(){
+  if(!sessionActuelle) return;
+  const estLecture = sessionActuelle.type === 'lecture';
+  document.getElementById('sessionPriereChamps').hidden = estLecture;
+  document.getElementById('sessionLectureChamps').hidden = !estLecture;
+  document.getElementById('sessionEchangesCard').hidden = !estLecture;
+  document.getElementById('groupeSessionTitre').textContent = estLecture
+    ? ('📖 ' + (sessionActuelle.livre || 'Lecture'))
+    : ('🙏 ' + (sessionActuelle.qui ? 'Prière pour ' + sessionActuelle.qui : 'Sujet de prière'));
+  document.getElementById('groupeSessionClotureeMsg').hidden = !sessionActuelle.cloturee;
+
+  if(!estLecture){
+    majInputSiPasActif(document.getElementById('sessionQuiInput'), sessionActuelle.qui);
+    majInputSiPasActif(document.getElementById('sessionSujetInput'), sessionActuelle.sujet);
+    majCheckboxSiPasActif(document.getElementById('sessionPriereFaiteCheckbox'), sessionActuelle.priereFaite);
+  } else {
+    majInputSiPasActif(document.getElementById('sessionDateInput'), sessionActuelle.date);
+    majInputSiPasActif(document.getElementById('sessionLivreInput'), sessionActuelle.livre);
+    majInputSiPasActif(document.getElementById('sessionPageActuelleInput'), sessionActuelle.pageActuelle);
+    if(sessionActuelle.nombrePages){
+      document.getElementById('sessionLivreTrouve').hidden = false;
+      document.getElementById('sessionLivrePagesValeur').textContent = sessionActuelle.nombrePages;
+      document.getElementById('sessionPagesManuelBox').hidden = true;
+    } else if(sessionActuelle.livre) {
+      document.getElementById('sessionLivreTrouve').hidden = true;
+      document.getElementById('sessionPagesManuelBox').hidden = false;
+    }
+    majJaugeAffichage(sessionActuelle.pageActuelle||0, sessionActuelle.nombrePages);
+  }
+
+  // Champs en lecture seule une fois la rencontre clôturée.
+  document.querySelectorAll('#sessionPriereChamps input, #sessionPriereChamps textarea, #sessionLectureChamps input').forEach(el=>{
+    el.disabled = !!sessionActuelle.cloturee;
+  });
+  document.getElementById('sessionEchangeInput').disabled = !!sessionActuelle.cloturee;
+
+  const btnCloture = document.getElementById('groupeClotureBtn');
+  if(sessionActuelle.cloturee){
+    btnCloture.hidden = true;
+  } else {
+    btnCloture.hidden = false;
+  }
+
+  renderPresence(sessionActuelle);
+}
+
+function ecrireChampSession(champ, valeur){
+  if(!groupeActuel || !sessionActuelle) return;
+  const v = (valeur === undefined) ? null : valeur;
+  firebase.firestore().collection('groups').doc(groupeActuel.id).collection('sessions').doc(sessionActuelle.id)
+    .update({ [champ]: v }).catch(e=> console.error('Erreur de sauvegarde de la rencontre :', e));
+}
+function majSessionChamp(champ, valeur){ ecrireChampSession(champ, valeur); }
+
+function onSessionLivreInput(el){
+  el.value = el.value.toUpperCase();
+  ecrireChampSession('livre', el.value);
+  document.getElementById('sessionLivreTrouve').hidden = true;
+  document.getElementById('sessionPagesManuelBox').hidden = true;
+  const titre = el.value.trim();
+  clearTimeout(rechercheLivreTimer);
+  if(!titre){ return; }
+  document.getElementById('sessionLivreRecherche').hidden = false;
+  rechercheLivreTimer = setTimeout(()=> rechercherLivreGoogleBooks(titre), 700);
+}
+function rechercherLivreGoogleBooks(titre){
+  fetch('https://www.googleapis.com/books/v1/volumes?maxResults=1&q=' + encodeURIComponent(titre))
+    .then(r=> r.json())
+    .then(data=>{
+      document.getElementById('sessionLivreRecherche').hidden = true;
+      const item = data && data.items && data.items[0];
+      const pages = item && item.volumeInfo && item.volumeInfo.pageCount;
+      if(pages){
+        document.getElementById('sessionLivreTrouve').hidden = false;
+        document.getElementById('sessionLivrePagesValeur').textContent = pages;
+        document.getElementById('sessionPagesManuelBox').hidden = true;
+        ecrireChampSession('nombrePages', pages);
+        ecrireChampSession('livreKey', titre.toUpperCase());
+      } else {
+        document.getElementById('sessionLivreTrouve').hidden = true;
+        document.getElementById('sessionPagesManuelBox').hidden = false;
+        ecrireChampSession('livreKey', titre.toUpperCase());
+      }
+    })
+    .catch(()=>{
+      // Pas de réseau vers Google Books (ou hors-ligne) : on ne bloque rien,
+      // la personne indique juste le nombre de pages elle-même.
+      document.getElementById('sessionLivreRecherche').hidden = true;
+      document.getElementById('sessionLivreTrouve').hidden = true;
+      document.getElementById('sessionPagesManuelBox').hidden = false;
+    });
+}
+function majSessionPageActuelle(v){
+  const val = Math.max(0, parseInt(v,10) || 0);
+  ecrireChampSession('pageActuelle', val);
+  majJaugeAffichage(val, sessionActuelle ? sessionActuelle.nombrePages : null);
+}
+function majJaugeAffichage(page, total){
+  const fill = document.getElementById('sessionJaugeFill');
+  const texte = document.getElementById('sessionJaugeTexte');
+  if(!fill || !texte) return;
+  if(total){
+    const pct = Math.max(0, Math.min(100, Math.round((page/total)*100)));
+    fill.style.width = pct + '%';
+    texte.textContent = pct + '% (' + page + '/' + total + ')';
+  } else {
+    fill.style.width = '0%';
+    texte.textContent = page + ' pages';
+  }
+}
+
+/* --- Les échanges (fil de discussion pendant une lecture) --- */
+function renderEchanges(){
+  const el = document.getElementById('sessionEchangesListe');
+  if(!el) return;
+  if(!echangesActuels.length){
+    el.innerHTML = '<div class="empty">Aucun message pour l\'instant.</div>';
+    return;
+  }
+  el.innerHTML = echangesActuels.map(m=>{
+    const heure = m.horodatage ? new Date(m.horodatage).toLocaleString('fr-FR', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+    return '<div class="groupe-echange" style="border-left-color:'+ (m.couleur||'var(--gold)') +'">'
+      + '<div class="groupe-echange-auteur" style="color:'+(m.couleur||'var(--khaki-dark)')+'">'+echapperHtml(m.auteurNom)+'</div>'
+      + '<div class="groupe-echange-texte">'+echapperHtml(m.texte)+'</div>'
+      + '<div class="groupe-echange-heure">'+heure+'</div>'
+      + '</div>';
+  }).join('');
+  el.scrollTop = el.scrollHeight;
+}
+function envoyerEchange(){
+  if(!groupeActuel || !sessionActuelle || !currentUser) return;
+  const input = document.getElementById('sessionEchangeInput');
+  const texte = (input.value||'').trim();
+  if(!texte) return;
+  const entree = {
+    auteurUid: currentUser.uid,
+    auteurNom: getMonNomGroupe(),
+    couleur: couleurDuMembre(currentUser.uid),
+    texte: texte,
+    horodatage: new Date().toISOString()
+  };
+  firebase.firestore().collection('groups').doc(groupeActuel.id).collection('sessions').doc(sessionActuelle.id)
+    .collection('entries').add(nettoyerPourFirestore(entree)).then(()=>{ input.value = ''; })
+    .catch(e=> console.error('Erreur d\'envoi du message :', e));
+}
+
+/* --- Présence (signature de fin de rencontre) --- */
+function renderPresence(session){
+  const el = document.getElementById('sessionPresenceListe');
+  if(!el || !groupeActuel) return;
+  const presence = session.presence || {};
+  const jeSuisOrganisatrice = currentUser && groupeActuel.createdBy === currentUser.uid;
+  el.innerHTML = groupeActuel.members.map(m=>{
+    const statut = presence[m.uid];
+    const peuxModifier = (currentUser && currentUser.uid === m.uid) || jeSuisOrganisatrice;
+    return '<div class="groupe-presence-row">'
+      + '<div class="groupe-presence-nom"><span class="groupe-membre-dot" style="background:'+m.couleur+'"></span>'+echapperHtml(m.nom)+'</div>'
+      + '<div class="groupe-presence-boutons">'
+      + '<button class="groupe-presence-btn-present'+(statut==='present'?' actif':'')+'" '+(peuxModifier?'':'disabled')+' onclick="togglePresence(\''+m.uid+'\',\'present\')">✅ Présent</button>'
+      + '<button class="groupe-presence-btn-absent'+(statut==='absent'?' actif':'')+'" '+(peuxModifier?'':'disabled')+' onclick="togglePresence(\''+m.uid+'\',\'absent\')">❌ Absent</button>'
+      + '</div></div>';
+  }).join('');
+}
+function togglePresence(uid, statut){
+  if(!groupeActuel || !sessionActuelle) return;
+  firebase.firestore().collection('groups').doc(groupeActuel.id).collection('sessions').doc(sessionActuelle.id)
+    .update({ ['presence.'+uid]: statut }).catch(e=> console.error(e));
+}
+
+function cloturerRencontre(){
+  if(!groupeActuel || !sessionActuelle) return;
+  if(!confirm('Clôturer cette rencontre ? Elle passera en lecture seule (tu pourras toujours la consulter dans l\'historique).')) return;
+  firebase.firestore().collection('groups').doc(groupeActuel.id).collection('sessions').doc(sessionActuelle.id)
+    .update({ cloturee:true, clotureeAt: new Date().toISOString() })
+    .catch(e=> console.error(e));
+}
+
+/* --- Rapport du groupe --- */
+function formaterDuree(debutIso, finIso){
+  if(!debutIso || !finIso) return '—';
+  const mins = Math.max(0, Math.round((new Date(finIso) - new Date(debutIso)) / 60000));
+  if(mins < 60) return mins + ' min';
+  return Math.floor(mins/60) + 'h ' + (mins%60) + 'min';
+}
+function afficherRapportGroupe(){
+  const box = document.getElementById('groupeRapportBox');
+  if(!box || !groupeActuel) return;
+  const termine = sessionsActuelles.filter(s=> s.cloturee).slice().sort((a,b)=> String(a.createdAt||'').localeCompare(String(b.createdAt||'')));
+  if(!termine.length){
+    box.innerHTML = '<div class="card"><div class="empty">Aucune rencontre clôturée pour l\'instant.</div></div>';
+    box.hidden = false;
+    return;
+  }
+  // Pages lues à chaque rencontre de lecture = différence avec la rencontre
+  // précédente du MÊME livre (ou la page atteinte si c'est la première fois).
+  const dernierePageParLivre = {};
+  const lignes = termine.map(s=>{
+    const presence = s.presence || {};
+    const presents = groupeActuel.members.filter(m=> presence[m.uid] === 'present').map(m=>m.nom).join(', ') || '—';
+    const absents = groupeActuel.members.filter(m=> presence[m.uid] === 'absent').map(m=>m.nom).join(', ') || '—';
+    const duree = formaterDuree(s.createdAt, s.clotureeAt);
+    let type, detail, pagesLues;
+    if(s.type === 'priere'){
+      type = 'Prière';
+      detail = echapperHtml(s.qui || '—') + (s.priereFaite ? ' (faite)' : '');
+      pagesLues = '—';
+    } else {
+      type = 'Lecture';
+      detail = echapperHtml(s.livre || '—');
+      const cle = s.livreKey || s.livre || '';
+      const avant = dernierePageParLivre[cle] || 0;
+      pagesLues = Math.max(0, (s.pageActuelle||0) - avant);
+      dernierePageParLivre[cle] = s.pageActuelle || 0;
+    }
+    return '<tr><td>'+(s.date||(s.createdAt||'').slice(0,10))+'</td><td>'+type+'</td><td>'+detail+'</td>'
+      + '<td>'+echapperHtml(presents)+'</td><td>'+echapperHtml(absents)+'</td><td>'+duree+'</td><td>'+pagesLues+'</td></tr>';
+  }).join('');
+  box.innerHTML = '<div class="card">'
+    + '<h2>📄 Rapport de « '+echapperHtml(groupeActuel.nom)+' »</h2>'
+    + '<div style="overflow-x:auto;"><table class="groupe-rapport-table"><thead><tr>'
+    + '<th>Date</th><th>Type</th><th>Détail</th><th>Présents</th><th>Absents</th><th>Durée</th><th>Pages lues</th>'
+    + '</tr></thead><tbody>'+lignes+'</tbody></table></div>'
+    + '<button onclick="window.print()" style="margin-top:12px;">Imprimer / exporter en PDF</button>'
+    + '</div>';
+  box.hidden = false;
+}
+
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=16').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=17').catch(()=>{});
   });
 }
 
@@ -2126,6 +2782,7 @@ function initialGateDisplay(){
 }
 initialGateDisplay();
 applyCachedAppearanceIfAny();
+verifierLienInvitationDansUrl();
 
 loadState();
 initCloudIfConfigured();

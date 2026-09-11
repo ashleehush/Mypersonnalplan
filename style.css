@@ -760,6 +760,64 @@
     }
   }
 
+  /* --- Ajouts : "En groupe" (prière / lecture à plusieurs) --- */
+  .groupe-vue[hidden]{ display:none; }
+  /* #sessionLivreTrouve utilise la classe .stats-grid (display:grid) : sans
+     cette règle, l'attribut "hidden" (même spécificité CSS) ne suffirait pas
+     à le masquer une fois la classe appliquée. */
+  #sessionLivreTrouve[hidden]{ display:none; }
+  .groupe-carte{
+    background:var(--cream-alt); border-radius:12px; padding:14px 16px; margin-bottom:10px;
+    border:1px solid #e0d8c0; cursor:pointer;
+  }
+  .groupe-carte:active{ opacity:.85; }
+  .groupe-carte-nom{ font-weight:bold; color:var(--khaki-dark); font-size:1rem; }
+  .groupe-membres{ display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
+  .groupe-membre-chip{
+    display:inline-flex; align-items:center; gap:6px; background:var(--cream);
+    border:1px solid #e0d8c0; border-radius:20px; padding:4px 10px 4px 6px; font-size:.78rem;
+    color:var(--text-dark);
+  }
+  .groupe-membre-dot{
+    width:12px; height:12px; border-radius:50%; flex-shrink:0; display:inline-block;
+  }
+  .groupe-membre-statut{ font-size:.68rem; color:var(--taupe); font-style:italic; margin-left:2px; }
+  .groupe-membre-absent{ opacity:.55; text-decoration:line-through; }
+  .groupe-presence-row{
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    background:var(--cream); border:1px solid #e0d8c0; border-radius:10px; padding:8px 12px; margin-bottom:6px;
+  }
+  .groupe-presence-nom{ font-size:.85rem; font-weight:bold; color:var(--khaki-dark); display:flex; align-items:center; gap:8px; }
+  .groupe-presence-boutons{ display:flex; gap:6px; }
+  .groupe-presence-boutons button{
+    margin-top:0; padding:6px 10px; font-size:.72rem; border-radius:8px;
+  }
+  .groupe-presence-btn-present.actif{ background:var(--green); color:var(--text-light); }
+  .groupe-presence-btn-absent.actif{ background:var(--red); color:var(--text-light); }
+  .groupe-echanges{
+    max-height:280px; overflow-y:auto; display:flex; flex-direction:column; gap:8px;
+    margin-bottom:10px; padding-right:2px;
+  }
+  .groupe-echange{
+    background:var(--cream); border-left:5px solid var(--gold); border-radius:8px;
+    padding:8px 10px; font-size:.85rem;
+  }
+  .groupe-echange-auteur{ font-weight:bold; font-size:.72rem; margin-bottom:2px; }
+  .groupe-echange-texte{ white-space:pre-wrap; word-break:break-word; }
+  .groupe-echange-heure{ font-size:.62rem; color:var(--taupe); margin-top:3px; }
+  .groupe-historique-item{
+    background:var(--cream); border:1px solid #e0d8c0; border-radius:10px; padding:10px 12px;
+    margin-bottom:8px; cursor:pointer;
+  }
+  .groupe-historique-item:active{ opacity:.85; }
+  .groupe-historique-titre{ font-weight:bold; color:var(--khaki-dark); font-size:.88rem; }
+  .groupe-historique-detail{ font-size:.72rem; color:var(--taupe); margin-top:2px; }
+  .groupe-rapport-table{ width:100%; border-collapse:collapse; font-size:.78rem; }
+  .groupe-rapport-table th, .groupe-rapport-table td{
+    border-bottom:1px solid #e0d8c0; padding:6px 4px; text-align:left; vertical-align:top;
+  }
+  .groupe-rapport-table th{ color:var(--khaki-med); font-size:.68rem; text-transform:uppercase; }
+
   /* --- Ajouts : rapport imprimable / export PDF --- */
   @media print{
     body, body[data-bg]{ padding:0; max-width:100%; background:#fff !important; }

@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Lato:ital,wght@0,400;0,700;1,400;1,700&family=Poppins:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Nunito:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=16">
+<link rel="stylesheet" href="style.css?v=17">
 </head>
 <body>
 
@@ -137,9 +137,10 @@
   <div class="side-menu-title">Menu</div>
   <button data-page="accueil" class="active" onclick="showPage('accueil')">🏠 Accueil</button>
   <button data-page="journal-chapitres" onclick="showPage('journal-chapitres')">📘 Journal des chapitres</button>
-  <button data-page="journal-comprehension" onclick="showPage('journal-comprehension')">📖 Journal de compréhension</button>
-  <button data-page="prieres" onclick="showPage('prieres')">🙏 Prières</button>
+  <button data-page="journal-comprehension" onclick="showPage('journal-comprehension')">📖 Mes notes</button>
+  <button data-page="prieres" onclick="showPage('prieres')">🙏 Mon journal</button>
   <button data-page="plans" onclick="showPage('plans')">🕊️ Plans thématiques</button>
+  <button data-page="en-groupe" onclick="showPage('en-groupe')">🧑‍🤝‍🧑 En groupe</button>
   <button data-page="rapports" onclick="showPage('rapports')">📄 Rapports</button>
   <button data-page="parametres" onclick="showPage('parametres')">⚙️ Paramètres</button>
 </nav>
@@ -243,7 +244,7 @@
 <!-- 3a. JOURNAL DE COMPRÉHENSION -->
 <section id="page-journal-comprehension" class="page" hidden>
   <div class="card">
-    <h2>📖 Journal de compréhension</h2>
+    <h2>📖 Mes notes</h2>
     <div class="subnote">Choisis le livre, le chapitre, et le verset si tu veux préciser.</div>
     <label>Livre</label>
     <select id="compLivre" onchange="onCompLivreChange()"></select>
@@ -261,7 +262,7 @@
 <!-- 3b. PRIÈRES -->
 <section id="page-prieres" class="page" hidden>
   <div class="card">
-    <h2>🙏 Prières</h2>
+    <h2>🙏 Mon journal</h2>
     <label>Livre</label>
     <select id="prayerLivre" onchange="onPrayerLivreChange()"></select>
     <label>Chapitre</label>
@@ -276,6 +277,143 @@
 </section>
 
 <!-- 4. RAPPORTS -->
+<!-- 4b. EN GROUPE -->
+<section id="page-en-groupe" class="page" hidden>
+
+  <div id="groupeSansCloud" class="card">
+    <h2>🧑‍🤝‍🧑 En groupe</h2>
+    <div class="empty">Connecte-toi à ton compte (onglet Paramètres → Sécurité) pour utiliser les groupes : ils ont besoin d'internet pour que tout le monde voie les mêmes informations en même temps.</div>
+  </div>
+
+  <div id="groupeContenu" hidden>
+
+    <!-- Vue 1 : liste des groupes -->
+    <div id="groupeVueListe" class="groupe-vue">
+      <div class="card">
+        <h2>🧑‍🤝‍🧑 En groupe</h2>
+        <div class="subnote">Retrouve-toi avec d'autres personnes pour prier ou lire un livre ensemble.</div>
+        <label>Ton nom affiché dans les groupes</label>
+        <input type="text" id="groupeMonNomInput" placeholder="Ex. Ashley" onchange="setMonNomGroupe(this.value)">
+      </div>
+
+      <div class="card">
+        <button onclick="ouvrirCreationGroupe()">➕ Créer un groupe</button>
+        <button onclick="ouvrirRejoindreGroupe()" style="background:var(--khaki-med);">🔗 Rejoindre avec un lien ou un code</button>
+
+        <div id="groupeCreationBox" hidden style="margin-top:12px;">
+          <label>Nom du groupe</label>
+          <input type="text" id="groupeNouveauNom" placeholder="Ex. Groupe de prière du mardi">
+          <button onclick="creerGroupe()">Créer et inviter</button>
+        </div>
+
+        <div id="groupeRejoindreBox" hidden style="margin-top:12px;">
+          <label>Colle ici le code ou le lien reçu</label>
+          <input type="text" id="groupeCodeInput" placeholder="Code ou lien d'invitation">
+          <button onclick="rejoindreParSaisie()">Rejoindre</button>
+          <div id="groupeRejoindreMsg" class="security-message" hidden></div>
+        </div>
+      </div>
+
+      <div id="groupesListe"></div>
+    </div>
+
+    <!-- Vue 2 : détail d'un groupe -->
+    <div id="groupeVueDetail" class="groupe-vue" hidden>
+      <div class="card">
+        <button onclick="afficherVueListeGroupes()" style="background:none; color:var(--khaki-med); padding:4px 0;">← Retour à mes groupes</button>
+        <h2 id="groupeDetailNom">Groupe</h2>
+        <div id="groupeMembresListe" class="groupe-membres"></div>
+        <button onclick="ouvrirInviter()">➕ Inviter des personnes</button>
+        <div id="groupeInviterBox" hidden style="margin-top:12px;">
+          <div class="subnote">Envoie ce lien par SMS, WhatsApp ou mail : la personne clique dessus, se connecte à l'appli, et rejoint automatiquement le groupe.</div>
+          <input type="text" id="groupeLienInvitation" readonly onclick="this.select()">
+          <button onclick="partagerLienInvitation()">📤 Partager le lien</button>
+          <button onclick="copierLienInvitation()" style="background:var(--khaki-med);">Copier le lien</button>
+          <div id="groupeCopieMsg" class="security-message" hidden></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Nouvelle rencontre</h2>
+        <label>Que voulez-vous faire ?</label>
+        <select id="groupeTypeSelect" onchange="onGroupeTypeChange()">
+          <option value="">— Choisir —</option>
+          <option value="priere">🙏 Sujet de prière</option>
+          <option value="lecture">📖 Lecture</option>
+        </select>
+        <button id="groupeDemarrerBtn" onclick="demarrerNouvelleRencontre()" hidden>Démarrer</button>
+      </div>
+
+      <div class="card">
+        <h2>Historique des rencontres</h2>
+        <div id="groupeHistorique"><div class="empty">Aucune rencontre pour l'instant.</div></div>
+        <button onclick="afficherRapportGroupe()">📄 Voir le rapport du groupe</button>
+      </div>
+
+      <div id="groupeRapportBox" hidden></div>
+    </div>
+
+    <!-- Vue 3 : une rencontre (prière ou lecture) -->
+    <div id="groupeVueSession" class="groupe-vue" hidden>
+      <div class="card">
+        <button onclick="retourAuGroupe()" style="background:none; color:var(--khaki-med); padding:4px 0;">← Retour au groupe</button>
+        <h2 id="groupeSessionTitre">Rencontre</h2>
+        <div id="groupeSessionClotureeMsg" class="subnote" hidden>Cette rencontre est terminée (lecture seule).</div>
+      </div>
+
+      <div id="sessionPriereChamps" class="card" hidden>
+        <label>Pour qui est cette prière ?</label>
+        <input type="text" id="sessionQuiInput" oninput="majSessionChamp('qui', this.value)">
+        <label>Sujet</label>
+        <textarea id="sessionSujetInput" placeholder="Écris le sujet de prière..." oninput="majSessionChamp('sujet', this.value)"></textarea>
+        <label style="display:flex; align-items:center; gap:8px; font-weight:normal; margin-top:12px;">
+          <input type="checkbox" id="sessionPriereFaiteCheckbox" style="width:auto;" onchange="majSessionChamp('priereFaite', this.checked)"> Prière faite
+        </label>
+      </div>
+
+      <div id="sessionLectureChamps" class="card" hidden>
+        <label>Date</label>
+        <input type="date" id="sessionDateInput" onchange="majSessionChamp('date', this.value)">
+        <label>Titre du livre</label>
+        <input type="text" id="sessionLivreInput" placeholder="Titre du livre" oninput="onSessionLivreInput(this)">
+        <div id="sessionLivreRecherche" class="subnote" hidden>Recherche du livre...</div>
+        <div id="sessionLivreTrouve" class="stats-grid" style="grid-template-columns:1fr;" hidden>
+          <div class="stat-tile">
+            <div class="stat-tile-value" id="sessionLivrePagesValeur">—</div>
+            <div class="stat-tile-label">pages (trouvé automatiquement)</div>
+          </div>
+        </div>
+        <div id="sessionPagesManuelBox" hidden>
+          <label>Livre non reconnu — indique le nombre de pages</label>
+          <input type="number" id="sessionPagesManuelInput" min="1" onchange="majSessionChamp('nombrePages', parseInt(this.value,10)||null)">
+        </div>
+
+        <label style="margin-top:14px;">Page actuelle du groupe</label>
+        <input type="number" id="sessionPageActuelleInput" min="0" onchange="majSessionPageActuelle(this.value)">
+        <div class="chapbar-row" style="margin-top:6px;">
+          <div class="chapbar-track"><div id="sessionJaugeFill" class="chapbar-fill" style="width:0%"></div></div>
+          <div id="sessionJaugeTexte" class="chapbar-value">0%</div>
+        </div>
+      </div>
+
+      <div id="sessionEchangesCard" class="card" hidden>
+        <h2>Les échanges</h2>
+        <div id="sessionEchangesListe" class="groupe-echanges"><div class="empty">Aucun message pour l'instant.</div></div>
+        <textarea id="sessionEchangeInput" placeholder="Écris ton message..."></textarea>
+        <button onclick="envoyerEchange()">Ajouter mon message</button>
+      </div>
+
+      <div class="card">
+        <h2>Présence</h2>
+        <div id="sessionPresenceListe" class="groupe-membres"></div>
+      </div>
+
+      <button id="groupeClotureBtn" onclick="cloturerRencontre()">✅ Clôturer cette rencontre</button>
+    </div>
+
+  </div>
+</section>
+
 <section id="page-rapports" class="page" hidden>
   <div class="card no-print">
     <h2>📄 Mon rapport</h2>
@@ -486,7 +624,7 @@
 <script src="video-config.js"></script>
 <script src="music-config.js"></script>
 <script src="livres-config.js"></script>
-<script src="script.js?v=16"></script>
+<script src="script.js?v=17"></script>
 <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>
