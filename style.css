@@ -159,7 +159,7 @@
   .kpi.taux{background:#fff;}
   .kpi.rest{background:#fff;}
   .kpi.pages{background:#fff;}
-  .banner{border-radius:10px; padding:16px; text-align:center; font-weight:bold; font-size:1.05rem;}
+  .banner{border-radius:10px; padding:14px 16px; text-align:center; font-weight:bold; font-size:.92rem;}
   .banner.late{background:var(--gold-light); color:var(--red);}
   .banner.ok{background:var(--gold-light); color:var(--green);}
   .banner.ahead{background:var(--gold-light); color:var(--green);}
@@ -173,7 +173,7 @@
   .reminder.great{ background:#E1EFE3; color:var(--green); }
   .reminder.good{ background:var(--gold-light); color:var(--olive); }
   .donut-wrap{display:flex; justify-content:center; margin:10px 0;}
-  .position-row{display:flex; align-items:center; gap:14px;}
+  .position-row{display:flex; align-items:center; gap:12px;}
   .donut-wrap-small{margin:0; flex:0 0 auto;}
   .position-row .detail{margin-top:0; flex:1;}
   .entry{
