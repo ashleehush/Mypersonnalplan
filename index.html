@@ -15,17 +15,29 @@
 </head>
 <body>
 
-<!-- Écran de verrouillage : demande le mot de passe une fois par appareil.
-     Reste affiché tant que l'appli n'est pas déverrouillée ; le reste de
-     l'appli (#appShell) est masqué jusque-là. -->
-<div id="lockScreen" class="lock-screen no-print">
+<!-- Écran de connexion : visible uniquement si Firebase est configuré et
+     que la personne n'est pas encore connectée. Sans Firebase configuré,
+     l'appli s'ouvre directement (mode local, comme avant), sans aucun
+     écran de connexion. -->
+<div id="loginScreen" class="lock-screen no-print" style="display:none;">
   <div class="lock-box">
-    <div class="lock-icon">🔒</div>
+    <div class="lock-icon">🔐</div>
     <h1 class="lock-title">Suivi de lecture</h1>
-    <p class="lock-sub">Entre le mot de passe pour continuer</p>
-    <input type="password" id="lockPassword" placeholder="Mot de passe" autocomplete="current-password" onkeydown="if(event.key==='Enter') tryUnlock()">
-    <button onclick="tryUnlock()">Se connecter</button>
-    <div class="lock-error" id="lockError" hidden>Mot de passe incorrect, réessaie.</div>
+    <p class="lock-sub">Connecte-toi pour accéder à tes lectures</p>
+
+    <div class="lock-error" id="loginError" hidden></div>
+
+    <label>Adresse e-mail</label>
+    <input type="email" id="loginEmail" placeholder="ton@email.com" autocomplete="email">
+    <label>Mot de passe</label>
+    <input type="password" id="loginPasswordField" placeholder="Mot de passe" autocomplete="current-password" onkeydown="if(event.key==='Enter') emailSignIn()">
+
+    <button onclick="emailSignIn()">Se connecter</button>
+    <button onclick="emailSignUp()" class="lock-secondary">Créer un compte</button>
+
+    <div class="lock-divider"><span>ou</span></div>
+
+    <button onclick="loginGoogle()" class="lock-google">Se connecter avec Google</button>
   </div>
 </div>
 
@@ -59,13 +71,6 @@
   <div id="musicBarBody" class="music-bar-body">
     <div id="musicOfDay"></div>
   </div>
-</div>
-
-<!-- Écran de connexion : visible seulement si Firebase est configuré et que l'utilisatrice n'est pas encore connectée -->
-<div id="loginScreen" class="card login-screen no-print" style="display:none;">
-  <h2>Connexion</h2>
-  <p class="subnote">Connecte-toi avec ton compte Google pour synchroniser tes lectures entre ton téléphone et ton ordinateur.</p>
-  <button onclick="loginGoogle()">Se connecter avec Google</button>
 </div>
 
 <div id="appRoot">
@@ -242,11 +247,6 @@
     <div class="detail" id="notifStatus" style="margin:4px 0 8px;">🔕 Rappels désactivés</div>
     <button id="notifBtn" onclick="toggleNotifs()">Activer les rappels</button>
   </div>
-
-  <div class="card" id="lockSettingsCard" style="display:none;">
-    <h2>🔒 Sécurité</h2>
-    <button onclick="lockApp()" style="background:var(--khaki-med);">Verrouiller l'appli maintenant</button>
-  </div>
 </section>
 
 </div><!-- /appRoot -->
@@ -296,7 +296,6 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
-<script src="auth-config.js"></script>
 <script src="video-config.js"></script>
 <script src="music-config.js"></script>
 <script src="livres-config.js"></script>

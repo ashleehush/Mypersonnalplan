@@ -648,7 +648,7 @@ function initCloudIfConfigured(){
       if(user){
         useCloud = true;
         document.getElementById('loginScreen').style.display = 'none';
-        document.getElementById('appRoot').style.display = 'block';
+        document.getElementById('appShell').style.display = '';
         document.getElementById('userEmail').textContent = user.email || '';
         document.getElementById('accountBox').style.display = 'block';
         cloudDocRef = firebase.firestore().collection('users').doc(user.uid).collection('state').doc('main');
@@ -674,12 +674,19 @@ function initCloudIfConfigured(){
       } else {
         useCloud = false;
         document.getElementById('loginScreen').style.display = 'flex';
-        document.getElementById('appRoot').style.display = 'none';
+        document.getElementById('appShell').style.display = 'none';
       }
     });
   }catch(e){
     console.error('Firebase non initialisé', e);
     setSyncBadge('local');
+    // Filet de sécurité : si Firebase ne charge pas (ex: pas de réseau), on
+    // ne laisse jamais l'appli bloquée sur un écran de connexion qui ne
+    // peut pas fonctionner — elle s'ouvre en mode local à la place.
+    const shell = document.getElementById('appShell');
+    const login = document.getElementById('loginScreen');
+    if(shell) shell.style.display = '';
+    if(login) login.style.display = 'none';
   }
 }
 
@@ -699,10 +706,50 @@ function setSyncBadge(status){
 
 function loginGoogle(){
   const provider = new firebase.auth.GoogleAuthProvider();
-  firebase.auth().signInWithPopup(provider).catch(e=>alert("Connexion impossible : "+e.message));
+  firebase.auth().signInWithPopup(provider).catch(e=> showLoginError(translateAuthError(e)));
 }
 function logout(){
   firebase.auth().signOut();
+}
+function showLoginError(msg){
+  const err = document.getElementById('loginError');
+  if(!err) return;
+  err.textContent = msg;
+  err.hidden = false;
+}
+function translateAuthError(e){
+  const map = {
+    'auth/invalid-email': "Adresse e-mail invalide.",
+    'auth/missing-email': "Entre ton adresse e-mail.",
+    'auth/user-not-found': "Aucun compte avec cet e-mail — clique sur « Créer un compte ».",
+    'auth/wrong-password': "Mot de passe incorrect.",
+    'auth/invalid-credential': "E-mail ou mot de passe incorrect.",
+    'auth/email-already-in-use': "Un compte existe déjà avec cet e-mail — clique sur « Se connecter ».",
+    'auth/weak-password': "Mot de passe trop court (6 caractères minimum).",
+    'auth/too-many-requests': "Trop de tentatives — réessaie dans quelques minutes.",
+    'auth/network-request-failed': "Problème de connexion Internet.",
+    'auth/popup-closed-by-user': "Connexion annulée."
+  };
+  return map[e.code] || ("Erreur de connexion : " + e.message);
+}
+function emailSignIn(){
+  const email = (document.getElementById('loginEmail').value || '').trim();
+  const pass = document.getElementById('loginPasswordField').value || '';
+  const err = document.getElementById('loginError');
+  if(err) err.hidden = true;
+  if(!email || !pass){ showLoginError("Entre ton e-mail et ton mot de passe."); return; }
+  firebase.auth().signInWithEmailAndPassword(email, pass)
+    .catch(e=> showLoginError(translateAuthError(e)));
+}
+function emailSignUp(){
+  const email = (document.getElementById('loginEmail').value || '').trim();
+  const pass = document.getElementById('loginPasswordField').value || '';
+  const err = document.getElementById('loginError');
+  if(err) err.hidden = true;
+  if(!email || !pass){ showLoginError("Entre ton e-mail et ton mot de passe."); return; }
+  if(pass.length < 6){ showLoginError("Le mot de passe doit faire au moins 6 caractères."); return; }
+  firebase.auth().createUserWithEmailAndPassword(email, pass)
+    .catch(e=> showLoginError(translateAuthError(e)));
 }
 
 async function loadState(){
@@ -1780,61 +1827,28 @@ function printReport(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=9').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=10').catch(()=>{});
   });
 }
 
 /* =========================================================================
-   VERROUILLAGE PAR MOT DE PASSE — voir auth-config.js. Le mot de passe
-   n'est demandé qu'une fois par appareil/navigateur (mémorisé dans
-   localStorage) ; "Verrouiller l'appli maintenant" dans Paramètres efface
-   cette mémorisation et redemande le mot de passe.
+   AFFICHAGE INITIAL DE L'ÉCRAN DE CONNEXION — évite un "flash" de l'appli
+   avant que Firebase ait pu vérifier si quelqu'un est déjà connecté.
+   Sans Firebase configuré (firebase-config.js encore avec les valeurs
+   "COLLE_ICI..."), l'appli s'ouvre directement, sans aucune connexion.
    ========================================================================= */
-const LOCK_STORAGE_KEY = 'bible-tracker-unlocked';
-function passwordConfigured(){
-  return typeof appPassword !== 'undefined' && !!appPassword;
-}
-function checkLock(){
+function initialGateDisplay(){
   const shell = document.getElementById('appShell');
-  const lock = document.getElementById('lockScreen');
-  const lockCard = document.getElementById('lockSettingsCard');
-  if(lockCard) lockCard.style.display = passwordConfigured() ? '' : 'none';
-  if(!passwordConfigured()){
-    if(shell) shell.style.display = '';
-    if(lock) lock.style.display = 'none';
-    return;
-  }
-  let unlocked = false;
-  try{ unlocked = localStorage.getItem(LOCK_STORAGE_KEY) === 'yes'; }catch(e){}
-  if(unlocked){
-    if(shell) shell.style.display = '';
-    if(lock) lock.style.display = 'none';
-  } else {
+  const login = document.getElementById('loginScreen');
+  if(firebaseIsConfigured()){
     if(shell) shell.style.display = 'none';
-    if(lock) lock.style.display = 'flex';
-    setTimeout(()=>{ const inp = document.getElementById('lockPassword'); if(inp) inp.focus(); }, 50);
-  }
-}
-function tryUnlock(){
-  const inp = document.getElementById('lockPassword');
-  const err = document.getElementById('lockError');
-  if(!inp) return;
-  if(passwordConfigured() && inp.value === appPassword){
-    try{ localStorage.setItem(LOCK_STORAGE_KEY, 'yes'); }catch(e){}
-    if(err) err.hidden = true;
-    inp.value = '';
-    checkLock();
+    if(login) login.style.display = 'flex';
   } else {
-    if(err) err.hidden = false;
-    inp.value = '';
-    inp.focus();
+    if(shell) shell.style.display = '';
+    if(login) login.style.display = 'none';
   }
 }
-function lockApp(){
-  try{ localStorage.removeItem(LOCK_STORAGE_KEY); }catch(e){}
-  checkLock();
-}
-checkLock();
+initialGateDisplay();
 
 loadState();
 initCloudIfConfigured();

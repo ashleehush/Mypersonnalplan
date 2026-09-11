@@ -342,6 +342,34 @@
   .reader-day-banner-msg{ font-size:.95rem; color:var(--olive); max-width:320px; }
   @keyframes readerBannerIn{ from{ opacity:0; transform:scale(.92); } to{ opacity:1; transform:scale(1); } }
   @keyframes readerBannerPulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.12); } }
+
+  /* --- Ajouts : écran de verrouillage (mot de passe) --- */
+  .lock-screen{
+    position:fixed; inset:0; z-index:300; display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(160deg, var(--gold-light) 0%, var(--cream) 70%); padding:20px;
+  }
+  .lock-box{
+    width:100%; max-width:320px; background:var(--cream-alt); border:1px solid #e0d8c0;
+    border-radius:14px; padding:28px 24px; text-align:center;
+  }
+  .lock-icon{ font-size:2.4rem; margin-bottom:6px; }
+  .lock-title{
+    background:none; border:none; padding:0; letter-spacing:normal;
+    font-size:1.2rem; margin:0 0 4px; color:var(--khaki-dark);
+  }
+  .lock-sub{ font-size:.82rem; color:var(--taupe); margin:0 0 16px; }
+  .lock-box label{ text-align:left; }
+  .lock-box input{ margin-bottom:4px; }
+  .lock-box button{ width:100%; }
+  .lock-error{ color:var(--red); font-size:.8rem; margin:0 0 12px; }
+  .lock-error:empty{ display:none; }
+  .lock-secondary{ background:var(--khaki-med); }
+  .lock-google{ background:var(--cream); color:var(--khaki-dark); border:1px solid #d8cca3 !important; }
+  .lock-divider{
+    display:flex; align-items:center; gap:10px; margin:16px 0 4px;
+    font-size:.72rem; color:var(--taupe); text-transform:uppercase; letter-spacing:1px;
+  }
+  .lock-divider::before, .lock-divider::after{ content:""; flex:1; height:1px; background:#e0d8c0; }
   @media (min-width:700px){
     .plans-grid{ grid-template-columns:repeat(3, 1fr); }
   }
