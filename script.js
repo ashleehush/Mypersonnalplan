@@ -649,8 +649,8 @@ function initCloudIfConfigured(){
         useCloud = true;
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('appShell').style.display = '';
-        document.getElementById('userEmail').textContent = user.email || '';
-        document.getElementById('accountBox').style.display = 'block';
+        document.getElementById('securityCard').style.display = '';
+        renderSecurityCard(user);
         cloudDocRef = firebase.firestore().collection('users').doc(user.uid).collection('state').doc('main');
         setSyncBadge('connecting');
         cloudDocRef.onSnapshot(snap=>{
@@ -661,6 +661,7 @@ function initCloudIfConfigured(){
             document.getElementById('dateDebut').value = state.dateDebut;
             renderLog(); renderComp(); renderPrayers(); compute(); refreshVerseSelects();
             applyAppearance(); updateNotifUI(); renderVideoOfDay(); renderMusicOfDay(); renderBookOfDay(); renderThematicPlans();
+            renderSecurityCard(user);
             checkAndNotify();
           } else {
             // premier lancement pour ce compte : on crée le document
@@ -673,6 +674,7 @@ function initCloudIfConfigured(){
         });
       } else {
         useCloud = false;
+        pickLoginTheme();
         document.getElementById('loginScreen').style.display = 'flex';
         document.getElementById('appShell').style.display = 'none';
       }
@@ -714,8 +716,26 @@ function logout(){
 function showLoginError(msg){
   const err = document.getElementById('loginError');
   if(!err) return;
+  err.classList.remove('lock-success');
   err.textContent = msg;
   err.hidden = false;
+}
+function showLoginSuccess(msg){
+  const err = document.getElementById('loginError');
+  if(!err) return;
+  err.classList.add('lock-success');
+  err.textContent = msg;
+  err.hidden = false;
+}
+function forgotPassword(){
+  const email = (document.getElementById('loginEmail').value || '').trim();
+  if(!email){
+    showLoginError("Entre d'abord ton adresse e-mail ci-dessus, puis reclique sur « Mot de passe oublié ? ».");
+    return;
+  }
+  firebase.auth().sendPasswordResetEmail(email)
+    .then(()=> showLoginSuccess("E-mail envoyé ! Vérifie ta boîte de réception (et les spams)."))
+    .catch(e=> showLoginError(translateAuthError(e)));
 }
 function translateAuthError(e){
   const map = {
@@ -728,7 +748,8 @@ function translateAuthError(e){
     'auth/weak-password': "Mot de passe trop court (6 caractères minimum).",
     'auth/too-many-requests': "Trop de tentatives — réessaie dans quelques minutes.",
     'auth/network-request-failed': "Problème de connexion Internet.",
-    'auth/popup-closed-by-user': "Connexion annulée."
+    'auth/popup-closed-by-user': "Connexion annulée.",
+    'auth/requires-recent-login': "Pour ta sécurité, déconnecte-toi puis reconnecte-toi avant de faire ce changement."
   };
   return map[e.code] || ("Erreur de connexion : " + e.message);
 }
@@ -750,6 +771,89 @@ function emailSignUp(){
   if(pass.length < 6){ showLoginError("Le mot de passe doit faire au moins 6 caractères."); return; }
   firebase.auth().createUserWithEmailAndPassword(email, pass)
     .catch(e=> showLoginError(translateAuthError(e)));
+}
+
+/* =========================================================================
+   SÉCURITÉ ET COMPTE — rubrique dans Paramètres : e-mail, mot de passe
+   (jamais affiché en clair — Firebase ne le renvoie d'ailleurs jamais),
+   avec la date de la dernière modification de chacun, mémorisée dans
+   state.security (synchronisée comme le reste des données).
+   ========================================================================= */
+function renderSecurityCard(user){
+  const emailEl = document.getElementById('secEmailValue');
+  if(emailEl) emailEl.textContent = (user && user.email) || '';
+  if(!state.security) state.security = {};
+  const emailDateEl = document.getElementById('secEmailDate');
+  if(emailDateEl){
+    emailDateEl.textContent = state.security.emailUpdatedAt
+      ? ('Dernière modification : ' + fmtDate(parseDate(state.security.emailUpdatedAt))) : '';
+  }
+  const passDateEl = document.getElementById('secPasswordDate');
+  if(passDateEl){
+    passDateEl.textContent = state.security.passwordUpdatedAt
+      ? ('Dernière modification : ' + fmtDate(parseDate(state.security.passwordUpdatedAt))) : '';
+  }
+}
+function showSecMessage(msg, isError){
+  const el = document.getElementById('secMessage');
+  if(!el) return;
+  el.textContent = msg;
+  el.classList.toggle('security-message-error', !!isError);
+  el.hidden = false;
+}
+function hideSecMessage(){
+  const el = document.getElementById('secMessage');
+  if(el) el.hidden = true;
+}
+function toggleEditEmail(forceClose){
+  const box = document.getElementById('secEmailEdit');
+  if(!box) return;
+  box.hidden = forceClose === true ? true : !box.hidden;
+  if(!box.hidden){
+    const inp = document.getElementById('secEmailInput');
+    if(inp){ inp.value = ''; inp.focus(); }
+  }
+  hideSecMessage();
+}
+function toggleEditPassword(forceClose){
+  const box = document.getElementById('secPasswordEdit');
+  if(!box) return;
+  box.hidden = forceClose === true ? true : !box.hidden;
+  if(!box.hidden){
+    const inp = document.getElementById('secPasswordInput');
+    if(inp){ inp.value = ''; inp.focus(); }
+  }
+  hideSecMessage();
+}
+function saveNewEmail(){
+  const inp = document.getElementById('secEmailInput');
+  const email = (inp.value || '').trim();
+  if(!email){ showSecMessage("Entre une nouvelle adresse e-mail.", true); return; }
+  const user = firebase.auth().currentUser;
+  if(!user) return;
+  user.updateEmail(email).then(()=>{
+    if(!state.security) state.security = {};
+    state.security.emailUpdatedAt = todayStr();
+    persist();
+    renderSecurityCard(user);
+    toggleEditEmail(true);
+    showSecMessage("Adresse e-mail mise à jour.");
+  }).catch(e=> showSecMessage(translateAuthError(e), true));
+}
+function saveNewPassword(){
+  const inp = document.getElementById('secPasswordInput');
+  const pass = inp.value || '';
+  if(pass.length < 6){ showSecMessage("Le mot de passe doit faire au moins 6 caractères.", true); return; }
+  const user = firebase.auth().currentUser;
+  if(!user) return;
+  user.updatePassword(pass).then(()=>{
+    if(!state.security) state.security = {};
+    state.security.passwordUpdatedAt = todayStr();
+    persist();
+    renderSecurityCard(user);
+    toggleEditPassword(true);
+    showSecMessage("Mot de passe mis à jour.");
+  }).catch(e=> showSecMessage(translateAuthError(e), true));
 }
 
 async function loadState(){
@@ -1827,7 +1931,7 @@ function printReport(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=10').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=12').catch(()=>{});
   });
 }
 
@@ -1837,9 +1941,16 @@ if('serviceWorker' in navigator){
    Sans Firebase configuré (firebase-config.js encore avec les valeurs
    "COLLE_ICI..."), l'appli s'ouvre directement, sans aucune connexion.
    ========================================================================= */
+function pickLoginTheme(){
+  const login = document.getElementById('loginScreen');
+  if(!login) return;
+  const themes = ['a','b','c','d'];
+  login.dataset.theme = themes[Math.floor(Math.random() * themes.length)];
+}
 function initialGateDisplay(){
   const shell = document.getElementById('appShell');
   const login = document.getElementById('loginScreen');
+  pickLoginTheme();
   if(firebaseIsConfigured()){
     if(shell) shell.style.display = 'none';
     if(login) login.style.display = 'flex';
