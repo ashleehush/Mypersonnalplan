@@ -508,12 +508,54 @@ function renderBookOfDay(){
   const start = new Date(new Date().getFullYear(), 0, 0);
   const dayOfYear = Math.floor((new Date() - start) / 86400000);
   const b = books[dayOfYear % books.length];
-  box.innerHTML = '<div class="book-suggestion"><div class="book-title">'+b.titre+'</div><div class="book-author">'+b.auteur+'</div></div>';
+  box.innerHTML = bookSuggestionHTML(b, 'day');
+  loadBookCover('day', b);
   if(listBox){
-    listBox.innerHTML = books.map(x=>
-      '<div class="book-suggestion"><div class="book-title">'+x.titre+'</div><div class="book-author">'+x.auteur+'</div></div>'
-    ).join('');
+    listBox.innerHTML = books.map((x,i)=> bookSuggestionHTML(x, 'list'+i)).join('');
+    books.forEach((x,i)=> loadBookCover('list'+i, x));
   }
+}
+function bookSuggestionHTML(b, idBase){
+  return '<div class="book-suggestion">'
+    + '<div class="book-cover-wrap">'
+    +   '<div class="book-cover-ph" id="ph-'+idBase+'">📖</div>'
+    +   '<img class="book-cover" id="img-'+idBase+'" style="display:none" alt="">'
+    + '</div>'
+    + '<div class="book-info"><div class="book-title">'+b.titre+'</div><div class="book-author">'+b.auteur+'</div></div>'
+    + '</div>';
+}
+/* Couvertures de livres récupérées automatiquement (gratuit, sans clé) sur
+   Open Library — l'appli n'a besoin de connaître que titre + auteur. Mises
+   en cache en mémoire le temps de la session pour ne pas re-demander sans
+   arrêt ; si rien n'est trouvé (ou hors-ligne), l'icône 📖 reste affichée,
+   ce n'est jamais bloquant. */
+const bookCoverCache = {};
+function bookCoverKey(b){ return (b.titre||'') + '|' + (b.auteur||''); }
+function loadBookCover(idBase, book){
+  const key = bookCoverKey(book);
+  if(Object.prototype.hasOwnProperty.call(bookCoverCache, key)){
+    setBookCover(idBase, bookCoverCache[key]);
+    return;
+  }
+  const q = 'title=' + encodeURIComponent(book.titre) + '&author=' + encodeURIComponent(book.auteur);
+  fetch('https://openlibrary.org/search.json?' + q + '&fields=cover_i&limit=1')
+    .then(r => r.ok ? r.json() : null)
+    .then(data => {
+      const doc = data && data.docs && data.docs[0];
+      const url = (doc && doc.cover_i) ? ('https://covers.openlibrary.org/b/id/' + doc.cover_i + '-M.jpg') : null;
+      bookCoverCache[key] = url;
+      setBookCover(idBase, url);
+    })
+    .catch(() => { bookCoverCache[key] = null; setBookCover(idBase, null); });
+}
+function setBookCover(idBase, url){
+  const img = document.getElementById('img-' + idBase);
+  const ph = document.getElementById('ph-' + idBase);
+  if(!img || !ph) return;
+  if(!url){ img.style.display = 'none'; ph.style.display = 'flex'; return; }
+  img.onload = () => { ph.style.display = 'none'; img.style.display = 'block'; };
+  img.onerror = () => { img.style.display = 'none'; ph.style.display = 'flex'; };
+  img.src = url;
 }
 /* Replie/déplie le lecteur "Louange & adoration" — repliée, la musique
    continue à jouer (on ne fait que la rétrécir visuellement à 0 avec
@@ -1429,12 +1471,21 @@ function openPlanReader(planId){
   const firstUnfinished = jours.findIndex((_,i)=>!done[i]);
   readerDayIndex = firstUnfinished === -1 ? 0 : firstUnfinished;
   document.getElementById('readerTitle').textContent = plan.titre;
+  hideReaderDayBanner();
   renderReaderDay();
   document.getElementById('planReader').classList.add('open');
 }
 function closePlanReader(){
   document.getElementById('planReader').classList.remove('open');
+  hideReaderDayBanner();
   renderThematicPlans();
+}
+/* Lien temporel : une fois qu'on a marqué un jour comme fait, il faut
+   attendre le lendemain (date du calendrier) pour pouvoir lire le jour
+   suivant de CE plan. Les jours déjà faits restent toujours consultables
+   en arrière. On mémorise juste la date du dernier jour terminé par plan. */
+function isPlanLockedToday(planId){
+  return !!(state.thematicLastReadDate && state.thematicLastReadDate[planId] === todayStr());
 }
 function renderReaderDay(){
   const plan = THEMATIC_PLANS.find(p=>p.id===readerPlanId);
@@ -1445,18 +1496,34 @@ function renderReaderDay(){
   const jour = jours[readerDayIndex];
   const done = (state.thematicProgress && state.thematicProgress[readerPlanId]) || [];
   const isDone = !!done[readerDayIndex];
+  const locked = !isDone && isPlanLockedToday(readerPlanId);
 
   document.getElementById('readerDay').textContent = 'Jour ' + (readerDayIndex+1) + ' / ' + total;
-  document.getElementById('readerRef').textContent = jour.ref;
-  document.getElementById('readerText').textContent = '« ' + jour.texte + ' »';
-  const explEl = document.getElementById('readerExplication');
-  if(explEl) explEl.textContent = jour.explication ? ('💡 ' + jour.explication) : '';
-  document.getElementById('readerPrayer').textContent = '🙏 ' + jour.priere;
 
-  const versionsEl = document.getElementById('readerVersions');
-  if(versionsEl){
-    const links = verseVersionLinks(jour.ref);
-    versionsEl.innerHTML = links.map(l=>'<a href="'+l.url+'" target="_blank" rel="noopener">'+l.label+'</a>').join('');
+  const lockedEl = document.getElementById('readerLocked');
+  const normalEls = [
+    document.getElementById('readerRef'), document.getElementById('readerText'),
+    document.getElementById('readerExplication'), document.getElementById('readerPrayer'),
+    document.getElementById('readerVersions')
+  ];
+  if(locked){
+    normalEls.forEach(el=>{ if(el) el.style.display = 'none'; });
+    if(lockedEl) lockedEl.hidden = false;
+  } else {
+    normalEls.forEach(el=>{ if(el) el.style.display = ''; });
+    if(lockedEl) lockedEl.hidden = true;
+
+    document.getElementById('readerRef').textContent = jour.ref;
+    document.getElementById('readerText').textContent = '« ' + jour.texte + ' »';
+    const explEl = document.getElementById('readerExplication');
+    if(explEl) explEl.textContent = jour.explication ? ('💡 ' + jour.explication) : '';
+    document.getElementById('readerPrayer').textContent = '🙏 ' + jour.priere;
+
+    const versionsEl = document.getElementById('readerVersions');
+    if(versionsEl){
+      const links = verseVersionLinks(jour.ref);
+      versionsEl.innerHTML = links.map(l=>'<a href="'+l.url+'" target="_blank" rel="noopener">'+l.label+'</a>').join('');
+    }
   }
 
   const pct = Math.round(((readerDayIndex+1)/total)*100);
@@ -1464,20 +1531,39 @@ function renderReaderDay(){
   document.getElementById('readerProgressLabel').textContent = pct + '%';
 
   const doneBtn = document.getElementById('readerDoneBtn');
-  doneBtn.textContent = isDone ? '✓ Jour fait' : 'Marquer ce jour comme fait';
-  doneBtn.classList.toggle('done', isDone);
+  if(locked){
+    doneBtn.textContent = '⭐ Reviens demain';
+    doneBtn.disabled = true;
+    doneBtn.classList.remove('done');
+  } else {
+    doneBtn.disabled = false;
+    doneBtn.textContent = isDone ? '✓ Jour fait' : 'Marquer ce jour comme fait';
+    doneBtn.classList.toggle('done', isDone);
+  }
 
   document.getElementById('readerPrevBtn').disabled = (readerDayIndex === 0);
-  document.getElementById('readerNextBtn').disabled = (readerDayIndex === total-1);
+  document.getElementById('readerNextBtn').disabled = (readerDayIndex === total-1) || locked;
 }
 function readerNext(){
   const plan = THEMATIC_PLANS.find(p=>p.id===readerPlanId);
   if(!plan) return;
   const total = activeJours(plan).length;
+  if(isPlanLockedToday(readerPlanId)) return;
   if(readerDayIndex < total-1){ readerDayIndex++; renderReaderDay(); }
 }
 function readerPrev(){
   if(readerDayIndex > 0){ readerDayIndex--; renderReaderDay(); }
+}
+function showReaderDayBanner(dayNum){
+  const banner = document.getElementById('readerDayBanner');
+  const title = document.getElementById('readerDayBannerTitle');
+  if(!banner) return;
+  if(title) title.textContent = 'Félicitations, jour ' + dayNum + ' terminé !';
+  banner.hidden = false;
+}
+function hideReaderDayBanner(){
+  const banner = document.getElementById('readerDayBanner');
+  if(banner) banner.hidden = true;
 }
 function readerToggleDone(){
   if(!readerPlanId) return;
@@ -1486,14 +1572,19 @@ function readerToggleDone(){
   const plan = THEMATIC_PLANS.find(p=>p.id===readerPlanId);
   const total = plan ? activeJours(plan).length : 0;
   const wasDone = !!state.thematicProgress[readerPlanId][readerDayIndex];
+  const dayJustFinished = plan && !wasDone; // true = on vient de marquer ce jour comme fait (pas un "démarquer")
   state.thematicProgress[readerPlanId][readerDayIndex] = !wasDone;
   const nowAllDone = plan && activeJours(plan).every((_,i)=> !!state.thematicProgress[readerPlanId][i]);
-  const justFinishedLastDay = plan && !wasDone && readerDayIndex === total-1 && nowAllDone;
+  const justFinishedLastDay = dayJustFinished && readerDayIndex === total-1 && nowAllDone;
   if(justFinishedLastDay){
     // Historique des complétions : gardé même après un "Recommencer", pour
     // pouvoir dire par exemple qu'un plan a été fait deux fois.
     if(!state.thematicCompletions) state.thematicCompletions = {};
     state.thematicCompletions[readerPlanId] = (state.thematicCompletions[readerPlanId]||0) + 1;
+  }
+  if(dayJustFinished && !justFinishedLastDay){
+    if(!state.thematicLastReadDate) state.thematicLastReadDate = {};
+    state.thematicLastReadDate[readerPlanId] = todayStr();
   }
   persist();
   renderReaderDay();
@@ -1501,6 +1592,9 @@ function readerToggleDone(){
     const doneBtn = document.getElementById('readerDoneBtn');
     if(doneBtn) doneBtn.textContent = '🎉 Plan terminé ! Retour à la liste...';
     setTimeout(()=>{ closePlanReader(); }, 1200);
+  } else if(dayJustFinished){
+    showReaderDayBanner(readerDayIndex + 1);
+    setTimeout(()=>{ hideReaderDayBanner(); closePlanReader(); }, 2200);
   }
 }
 

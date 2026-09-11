@@ -72,15 +72,6 @@
     <div class="kpi pages"><div class="label">Pages rest.</div><div class="value" id="kpiPages">-</div></div>
   </div>
 
-  <div class="card" id="booksCard" style="display:none;">
-    <h2>📚 Suggestion de lecture chrétienne</h2>
-    <div id="bookOfDay"></div>
-    <details style="margin-top:10px;">
-      <summary>Voir toutes mes suggestions</summary>
-      <div id="booksList" style="margin-top:10px;"></div>
-    </details>
-  </div>
-
   <div class="card">
     <h2>📍 Ma position actuelle</h2>
     <div id="positionCurrent" class="detail" style="margin-top:0;"></div>
@@ -90,9 +81,20 @@
     </details>
   </div>
 
-  <div class="card">
-    <h2>Avancement global</h2>
-    <div class="donut-wrap"><svg id="donut" width="150" height="150" viewBox="0 0 160 160"></svg></div>
+  <div class="card-row">
+    <div class="card" id="booksCard" style="display:none;">
+      <h2>📚 Suggestion de lecture chrétienne</h2>
+      <div id="bookOfDay"></div>
+      <details style="margin-top:10px;">
+        <summary>Voir toutes mes suggestions</summary>
+        <div id="booksList" style="margin-top:10px;"></div>
+      </details>
+    </div>
+
+    <div class="card">
+      <h2>Avancement global</h2>
+      <div class="donut-wrap"><svg id="donut" width="150" height="150" viewBox="0 0 160 160"></svg></div>
+    </div>
   </div>
 
   <div class="card">
@@ -251,11 +253,22 @@
     <div class="plan-reader-explication" id="readerExplication"></div>
     <div class="plan-reader-prayer" id="readerPrayer"></div>
     <div class="plan-reader-versions" id="readerVersions"></div>
+    <div class="reader-locked" id="readerLocked" hidden>
+      <div class="reader-locked-star">⭐</div>
+      <div class="reader-locked-msg">Rendez-vous demain pour la suite !</div>
+      <div class="reader-locked-sub">Tu as déjà lu aujourd'hui — reviens demain pour continuer ce plan.</div>
+    </div>
   </div>
   <div class="plan-reader-nav">
     <button class="plan-reader-arrow" id="readerPrevBtn" onclick="readerPrev()" aria-label="Jour précédent">‹</button>
     <button class="plan-reader-done" id="readerDoneBtn" onclick="readerToggleDone()">Marquer ce jour comme fait</button>
     <button class="plan-reader-arrow" id="readerNextBtn" onclick="readerNext()" aria-label="Jour suivant">›</button>
+  </div>
+
+  <div class="reader-day-banner" id="readerDayBanner" hidden>
+    <div class="reader-day-banner-stars">⭐⭐⭐</div>
+    <div class="reader-day-banner-title" id="readerDayBannerTitle">Félicitations, jour 1 terminé !</div>
+    <div class="reader-day-banner-msg">Rendez-vous demain pour la suite 🙏</div>
   </div>
 </div>
 

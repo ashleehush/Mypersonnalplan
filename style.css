@@ -215,9 +215,21 @@
     display:flex; align-items:center; justify-content:center; padding:0;
   }
   .audio-info{ font-size:.85rem; font-weight:bold; color:var(--khaki-dark); }
-  .book-suggestion{ padding:8px 0; border-bottom:1px solid #e0d8c0; }
+  .card-row{ display:flex; flex-wrap:wrap; gap:14px; }
+  .card-row > .card{ flex:1 1 260px; margin-bottom:14px; }
+  .book-suggestion{ padding:8px 0; border-bottom:1px solid #e0d8c0; display:flex; align-items:center; gap:10px; }
   .book-suggestion:last-child{ border-bottom:none; }
   #bookOfDay .book-suggestion{ border-bottom:none; padding:0; }
+  .book-cover-wrap{ position:relative; width:46px; height:66px; flex-shrink:0; }
+  .book-cover, .book-cover-ph{
+    position:absolute; top:0; left:0; width:46px; height:66px; border-radius:5px;
+  }
+  .book-cover{ object-fit:cover; box-shadow:0 2px 6px rgba(0,0,0,.2); }
+  .book-cover-ph{
+    background:var(--gold-light); display:flex; align-items:center; justify-content:center;
+    font-size:1.3rem; box-shadow:0 1px 3px rgba(0,0,0,.1);
+  }
+  .book-info{ min-width:0; }
   .book-title{ font-weight:bold; color:var(--khaki-dark); font-size:.92rem; }
   .book-author{ font-size:.78rem; color:var(--taupe); margin-top:2px; }
   .spotify-wrap{ border-radius:12px; overflow:hidden; }
@@ -311,6 +323,25 @@
     padding:12px; font-weight:bold; font-size:.85rem; margin-top:0; cursor:pointer;
   }
   .plan-reader-done.done{ background:var(--green); }
+  .plan-reader-done:disabled{ opacity:.55; cursor:default; }
+  .reader-locked{
+    display:flex; flex-direction:column; align-items:center; gap:8px; max-width:420px;
+  }
+  .reader-locked-star{ font-size:2.4rem; }
+  .reader-locked-msg{ font-size:1.15rem; font-weight:bold; color:var(--khaki-dark); }
+  .reader-locked-sub{ font-size:.85rem; color:var(--taupe); line-height:1.5; }
+  .reader-day-banner{
+    position:fixed; inset:0; z-index:210; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; gap:14px; text-align:center; padding:20px;
+    background:linear-gradient(160deg, var(--gold-light) 0%, var(--cream) 70%);
+    animation:readerBannerIn .35s ease;
+  }
+  .reader-day-banner[hidden]{ display:none; }
+  .reader-day-banner-stars{ font-size:2.6rem; animation:readerBannerPulse 1.1s ease-in-out infinite; }
+  .reader-day-banner-title{ font-size:1.25rem; font-weight:bold; color:var(--khaki-dark); max-width:340px; }
+  .reader-day-banner-msg{ font-size:.95rem; color:var(--olive); max-width:320px; }
+  @keyframes readerBannerIn{ from{ opacity:0; transform:scale(.92); } to{ opacity:1; transform:scale(1); } }
+  @keyframes readerBannerPulse{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.12); } }
   @media (min-width:700px){
     .plans-grid{ grid-template-columns:repeat(3, 1fr); }
   }
