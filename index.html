@@ -15,6 +15,22 @@
 </head>
 <body>
 
+<!-- Écran de verrouillage : demande le mot de passe une fois par appareil.
+     Reste affiché tant que l'appli n'est pas déverrouillée ; le reste de
+     l'appli (#appShell) est masqué jusque-là. -->
+<div id="lockScreen" class="lock-screen no-print">
+  <div class="lock-box">
+    <div class="lock-icon">🔒</div>
+    <h1 class="lock-title">Suivi de lecture</h1>
+    <p class="lock-sub">Entre le mot de passe pour continuer</p>
+    <input type="password" id="lockPassword" placeholder="Mot de passe" autocomplete="current-password" onkeydown="if(event.key==='Enter') tryUnlock()">
+    <button onclick="tryUnlock()">Se connecter</button>
+    <div class="lock-error" id="lockError" hidden>Mot de passe incorrect, réessaie.</div>
+  </div>
+</div>
+
+<div id="appShell" style="display:none;">
+
 <div class="topbar no-print">
   <button class="hamburger" onclick="toggleMenu()" aria-label="Menu">☰</button>
   <h1 style="flex:1; margin:0;">SUIVI DE LECTURE</h1>
@@ -85,10 +101,6 @@
     <div class="card" id="booksCard" style="display:none;">
       <h2>📚 Suggestion de lecture chrétienne</h2>
       <div id="bookOfDay"></div>
-      <details style="margin-top:10px;">
-        <summary>Voir toutes mes suggestions</summary>
-        <div id="booksList" style="margin-top:10px;"></div>
-      </details>
     </div>
 
     <div class="card">
@@ -230,6 +242,11 @@
     <div class="detail" id="notifStatus" style="margin:4px 0 8px;">🔕 Rappels désactivés</div>
     <button id="notifBtn" onclick="toggleNotifs()">Activer les rappels</button>
   </div>
+
+  <div class="card" id="lockSettingsCard" style="display:none;">
+    <h2>🔒 Sécurité</h2>
+    <button onclick="lockApp()" style="background:var(--khaki-med);">Verrouiller l'appli maintenant</button>
+  </div>
 </section>
 
 </div><!-- /appRoot -->
@@ -272,11 +289,14 @@
   </div>
 </div>
 
+</div><!-- /#appShell -->
+
 <!-- Firebase (chargé seulement pour permettre la synchronisation ; sans configuration valide, l'appli reste en mode local) -->
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
 <script src="firebase-config.js"></script>
+<script src="auth-config.js"></script>
 <script src="video-config.js"></script>
 <script src="music-config.js"></script>
 <script src="livres-config.js"></script>

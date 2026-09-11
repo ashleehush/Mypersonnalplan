@@ -495,13 +495,11 @@ function toggleMusicPlayback(){
 function renderBookOfDay(){
   const card = document.getElementById('booksCard');
   const box = document.getElementById('bookOfDay');
-  const listBox = document.getElementById('booksList');
   if(!box) return;
   const books = (typeof livresChretiens !== 'undefined' && Array.isArray(livresChretiens)) ? livresChretiens : [];
   if(!books.length){
     if(card) card.style.display = 'none';
     box.innerHTML = '';
-    if(listBox) listBox.innerHTML = '';
     return;
   }
   if(card) card.style.display = '';
@@ -510,10 +508,6 @@ function renderBookOfDay(){
   const b = books[dayOfYear % books.length];
   box.innerHTML = bookSuggestionHTML(b, 'day');
   loadBookCover('day', b);
-  if(listBox){
-    listBox.innerHTML = books.map((x,i)=> bookSuggestionHTML(x, 'list'+i)).join('');
-    books.forEach((x,i)=> loadBookCover('list'+i, x));
-  }
 }
 function bookSuggestionHTML(b, idBase){
   return '<div class="book-suggestion">'
@@ -1786,9 +1780,61 @@ function printReport(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=7').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=9').catch(()=>{});
   });
 }
+
+/* =========================================================================
+   VERROUILLAGE PAR MOT DE PASSE — voir auth-config.js. Le mot de passe
+   n'est demandé qu'une fois par appareil/navigateur (mémorisé dans
+   localStorage) ; "Verrouiller l'appli maintenant" dans Paramètres efface
+   cette mémorisation et redemande le mot de passe.
+   ========================================================================= */
+const LOCK_STORAGE_KEY = 'bible-tracker-unlocked';
+function passwordConfigured(){
+  return typeof appPassword !== 'undefined' && !!appPassword;
+}
+function checkLock(){
+  const shell = document.getElementById('appShell');
+  const lock = document.getElementById('lockScreen');
+  const lockCard = document.getElementById('lockSettingsCard');
+  if(lockCard) lockCard.style.display = passwordConfigured() ? '' : 'none';
+  if(!passwordConfigured()){
+    if(shell) shell.style.display = '';
+    if(lock) lock.style.display = 'none';
+    return;
+  }
+  let unlocked = false;
+  try{ unlocked = localStorage.getItem(LOCK_STORAGE_KEY) === 'yes'; }catch(e){}
+  if(unlocked){
+    if(shell) shell.style.display = '';
+    if(lock) lock.style.display = 'none';
+  } else {
+    if(shell) shell.style.display = 'none';
+    if(lock) lock.style.display = 'flex';
+    setTimeout(()=>{ const inp = document.getElementById('lockPassword'); if(inp) inp.focus(); }, 50);
+  }
+}
+function tryUnlock(){
+  const inp = document.getElementById('lockPassword');
+  const err = document.getElementById('lockError');
+  if(!inp) return;
+  if(passwordConfigured() && inp.value === appPassword){
+    try{ localStorage.setItem(LOCK_STORAGE_KEY, 'yes'); }catch(e){}
+    if(err) err.hidden = true;
+    inp.value = '';
+    checkLock();
+  } else {
+    if(err) err.hidden = false;
+    inp.value = '';
+    inp.focus();
+  }
+}
+function lockApp(){
+  try{ localStorage.removeItem(LOCK_STORAGE_KEY); }catch(e){}
+  checkLock();
+}
+checkLock();
 
 loadState();
 initCloudIfConfigured();
