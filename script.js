@@ -820,6 +820,140 @@ function renderAvisAdmin(){
   });
 }
 
+/* =========================================================================
+   SUIVI D'ACTIVITÉ (pour le tableau de bord admin) — une collection légère
+   et séparée ("usersMeta"), qui ne contient JAMAIS le contenu personnel
+   (lectures, notes, prières) : seulement email + date d'inscription +
+   dernière activité vue. Choix délibéré pour respecter la vie privée des
+   adhérentes du groupe : le compte gérant peut voir QUI est inscrit et
+   QUAND il/elle est passé·e pour la dernière fois, jamais CE QUE la
+   personne a lu ou écrit. La "dernière activité" n'est qu'une date de
+   présence rafraîchie pendant que l'appli est ouverte — pas une durée de
+   session précise, ce qui n'est techniquement pas mesurable de façon
+   fiable dans une appli web.
+   ========================================================================= */
+let suiviActiviteInterval = null;
+function demarrerSuiviActivite(user){
+  majActivite(user);
+  arreterSuiviActivite();
+  // On rafraîchit toutes les 5 minutes tant que l'appli reste ouverte, et
+  // aussi quand on revient dessus après l'avoir laissée en arrière-plan.
+  suiviActiviteInterval = setInterval(()=> majActivite(user), 5*60*1000);
+  document.addEventListener('visibilitychange', suiviActiviteSurRetour);
+}
+function arreterSuiviActivite(){
+  if(suiviActiviteInterval){ clearInterval(suiviActiviteInterval); suiviActiviteInterval = null; }
+  document.removeEventListener('visibilitychange', suiviActiviteSurRetour);
+}
+function suiviActiviteSurRetour(){
+  if(document.visibilityState === 'visible' && currentUser) majActivite(currentUser);
+}
+function majActivite(user){
+  if(!user || !useCloud) return;
+  try{
+    firebase.firestore().collection('usersMeta').doc(user.uid).set({
+      email: user.email || null,
+      createdAt: (user.metadata && user.metadata.creationTime) || null,
+      lastActive: new Date().toISOString()
+    }, { merge: true }).catch(e=> console.error('Erreur de suivi d\'activité :', e));
+  }catch(e){ console.error('Erreur de suivi d\'activité :', e); }
+}
+function texteDepuis(dateIso){
+  if(!dateIso) return '—';
+  const jours = Math.floor((Date.now() - new Date(dateIso).getTime()) / 86400000);
+  if(jours <= 0) return "aujourd'hui";
+  if(jours === 1) return 'hier';
+  if(jours < 30) return 'il y a ' + jours + ' jours';
+  const mois = Math.floor(jours/30);
+  return 'il y a ' + mois + ' mois';
+}
+function renderUsersAdmin(){
+  const box = document.getElementById('usersAdminListe');
+  if(!box) return;
+  if(!estAdmin(currentUser)){ box.innerHTML = '<div class="empty">Accès réservé.</div>'; return; }
+  box.innerHTML = '<div class="empty">Chargement…</div>';
+  firebase.firestore().collection('usersMeta').get().then(snap=>{
+    if(snap.empty){ box.innerHTML = '<div class="empty">Aucun compte pour l\'instant.</div>'; return; }
+    const lignes = snap.docs.map(doc=> doc.data()).sort((a,b)=> String(b.lastActive||'').localeCompare(String(a.lastActive||'')));
+    const total = lignes.length;
+    box.innerHTML = '<div class="detail" style="margin-top:0; font-weight:bold;">'+total+' compte'+(total>1?'s':'')+' inscrit'+(total>1?'s':'')+'</div>'
+      + '<div style="overflow-x:auto; margin-top:10px;"><table class="groupe-rapport-table"><thead><tr>'
+      + '<th>Compte</th><th>Inscrit</th><th>Dernière activité</th></tr></thead><tbody>'
+      + lignes.map(u=> '<tr><td>'+echapperHtml(u.email||'—')+'</td><td>'+texteDepuis(u.createdAt)+'</td><td>'+texteDepuis(u.lastActive)+'</td></tr>').join('')
+      + '</tbody></table></div>';
+  }).catch(e=>{
+    console.error('Erreur de lecture des comptes :', e);
+    box.innerHTML = '<div class="empty">Impossible de charger les comptes (vérifie ta connexion).</div>';
+  });
+}
+
+/* =========================================================================
+   SUGGESTION MENSUELLE DE SUJET — une fois par mois calendaire, on demande
+   aux personnes connectées quel sujet elles aimeraient étudier. Les
+   réponses sont visibles par le compte gérant dans l'Espace admin, pour
+   choisir un message vidéo en lien avec les sujets demandés.
+   ========================================================================= */
+function moisActuel(){ const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth()+1); }
+function verifierSuggestionMensuelle(){
+  try{
+    if(!currentUser || !useCloud) return;
+    const notifOverlay = document.getElementById('notifPromptOverlay');
+    const avisOverlay = document.getElementById('avisPromptOverlay');
+    if((notifOverlay && !notifOverlay.hidden) || (avisOverlay && !avisOverlay.hidden)){
+      setTimeout(verifierSuggestionMensuelle, 1500); return;
+    }
+    if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
+    if(state.settings.suggestionSujetMois === moisActuel()) return;
+    const snooze = localStorage.getItem('bible-tracker-suggestion-snooze');
+    if(snooze === moisActuel()) return;
+    const overlay = document.getElementById('suggestionPromptOverlay');
+    if(overlay) overlay.hidden = false;
+  }catch(e){ console.error('Erreur suggestion mensuelle :', e); }
+}
+function envoyerSuggestion(){
+  const texte = (document.getElementById('suggestionTexte').value || '').trim();
+  if(!texte){ alert('Écris un mot ou deux sur le sujet qui t\'intéresse avant d\'envoyer.'); return; }
+  const overlay = document.getElementById('suggestionPromptOverlay');
+  if(overlay) overlay.hidden = true;
+  if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
+  state.settings.suggestionSujetMois = moisActuel();
+  try{ persist(); }catch(e){ console.error('Erreur de sauvegarde (suggestion) :', e); }
+  if(useCloud && currentUser){
+    firebase.firestore().collection('suggestionsSujet').add({
+      uid: currentUser.uid,
+      email: currentUser.email || null,
+      mois: moisActuel(),
+      reponse: texte,
+      date: new Date().toISOString()
+    }).catch(e=> console.error('Erreur d\'envoi de la suggestion :', e));
+  }
+  document.getElementById('suggestionTexte').value = '';
+}
+function reporterSuggestion(){
+  const overlay = document.getElementById('suggestionPromptOverlay');
+  if(overlay) overlay.hidden = true;
+  try{ localStorage.setItem('bible-tracker-suggestion-snooze', moisActuel()); }catch(e){}
+}
+function renderSuggestionsAdmin(){
+  const box = document.getElementById('suggestionsAdminListe');
+  if(!box) return;
+  if(!estAdmin(currentUser)){ box.innerHTML = '<div class="empty">Accès réservé.</div>'; return; }
+  box.innerHTML = '<div class="empty">Chargement…</div>';
+  firebase.firestore().collection('suggestionsSujet').orderBy('date','desc').get().then(snap=>{
+    if(snap.empty){ box.innerHTML = '<div class="empty">Aucune suggestion reçue pour l\'instant.</div>'; return; }
+    box.innerHTML = snap.docs.map(doc=>{
+      const s = doc.data();
+      return '<div class="avis-admin-item">'
+        + '<div class="detail" style="margin-top:0;">'+(s.mois||'')+' · '+echapperHtml(s.email||'')+'</div>'
+        + '<div style="margin-top:4px;">'+echapperHtml(s.reponse||'')+'</div>'
+        + '</div>';
+    }).join('');
+  }).catch(e=>{
+    console.error('Erreur de lecture des suggestions :', e);
+    box.innerHTML = '<div class="empty">Impossible de charger les suggestions (vérifie ta connexion).</div>';
+  });
+}
+
 function checkAndNotify(force){
   if(!state.settings || !state.settings.notifs) return;
   if(!('Notification' in window) || Notification.permission !== 'granted') return;
@@ -917,6 +1051,8 @@ function initCloudIfConfigured(){
         if(navAdminBtn) navAdminBtn.style.display = estAdmin(user) ? '' : 'none';
         setTimeout(verifierPromptNotifications, 900);
         setTimeout(verifierAvisMilestones, 1600);
+        setTimeout(verifierSuggestionMensuelle, 2300);
+        try{ demarrerSuiviActivite(user); }catch(e){ console.error('Erreur de suivi d\'activité :', e); }
         const securiteTabBtn = document.getElementById('securiteTabBtn');
         if(securiteTabBtn) securiteTabBtn.style.display = '';
         renderSecurityCard(user);
@@ -963,6 +1099,7 @@ function initCloudIfConfigured(){
         useCloud = false;
         currentUser = null;
         arreterGroupes();
+        arreterSuiviActivite();
         pickLoginTheme();
         const navAdminBtnOut = document.getElementById('navAdminBtn');
         if(navAdminBtnOut) navAdminBtnOut.style.display = 'none';
@@ -1212,6 +1349,29 @@ function saveSettings(){
   persist(); compute();
 }
 
+/* Sauvegarde personnelle : télécharge tout le contenu de "state" (lectures,
+   notes, prières, réglages...) dans un fichier .json sur l'appareil, en plus
+   de la sauvegarde automatique dans le cloud. Purement une copie de secours
+   pour la personne elle-même — l'appli ne sait pas la réimporter (pas
+   demandé), c'est juste pour garder une trace lisible en cas de besoin. */
+function telechargerMesDonnees(){
+  try{
+    const contenu = JSON.stringify(state, null, 2);
+    const blob = new Blob([contenu], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'suivi-lecture-sauvegarde-' + todayStr() + '.json';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(()=> URL.revokeObjectURL(url), 2000);
+  }catch(e){
+    console.error('Erreur export des données :', e);
+    alert("Le téléchargement n'a pas fonctionné sur cet appareil. Réessaie, ou contacte-moi si ça persiste.");
+  }
+}
+
 function pad(n){ return n<10 ? "0"+n : ""+n; }
 function fmtDate(d){ return pad(d.getDate())+"/"+pad(d.getMonth()+1)+"/"+d.getFullYear(); }
 function parseDate(s){ return new Date(s+"T00:00:00"); }
@@ -1378,6 +1538,11 @@ function drawDonut(taux, svgId){
   `;
 }
 
+// Index de la ligne en cours de modification dans state.chapterLog, ou null
+// si on est en train d'AJOUTER une nouvelle ligne (comportement par défaut).
+// Réutilise le même formulaire pour ajouter ET corriger, plutôt que d'avoir
+// deux formulaires séparés — plus simple à maintenir et pour l'utilisatrice.
+let editingLogIndex = null;
 function addLog(){
   const livre = logLivreSelect.value;
   const de = parseInt(document.getElementById('logDe').value)||1;
@@ -1389,6 +1554,12 @@ function addLog(){
     alert(livre + " ne compte que " + maxCh + " chapitres. Vérifie les numéros saisis.");
     return;
   }
+  if(editingLogIndex !== null){
+    state.chapterLog[editingLogIndex] = { date, livre, de, a };
+    annulerModifLog(false);
+    persist(); renderLog(); compute(); refreshVerseSelects();
+    return;
+  }
   const doublon = state.chapterLog.some(e=> e.date===date && e.livre===livre && e.de===de && e.a===a);
   if(doublon && !confirm("Tu as déjà enregistré exactement cette lecture (" + livre + " " + de + "-" + a + " le " + fmtDate(parseDate(date)) + "). Ça n'ajoutera pas de chapitres en double à ta progression, mais veux-tu quand même l'ajouter au journal ?")){
     return;
@@ -1398,7 +1569,34 @@ function addLog(){
 }
 function delLog(i){
   if(!confirm("Supprimer cette lecture du journal ?")) return;
+  if(editingLogIndex === i) annulerModifLog(false);
   state.chapterLog.splice(i,1); persist(); renderLog(); compute();
+}
+/* Remplit le formulaire du haut avec la ligne à corriger, plutôt que de la
+   supprimer et la refaire — on reste sur la même page, rien n'est perdu si
+   on annule en cours de route. */
+function modifierLog(i){
+  const e = state.chapterLog[i];
+  if(!e) return;
+  editingLogIndex = i;
+  logLivreSelect.value = e.livre;
+  onLogLivreChange();
+  document.getElementById('logDe').value = e.de;
+  document.getElementById('logA').value = e.a;
+  document.getElementById('logDate').value = e.date;
+  const btn = document.getElementById('logSubmitBtn');
+  if(btn) btn.textContent = 'Enregistrer la modification';
+  const annulerBtn = document.getElementById('logAnnulerBtn');
+  if(annulerBtn) annulerBtn.style.display = '';
+  document.getElementById('logLivre').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+function annulerModifLog(reafficher){
+  editingLogIndex = null;
+  const btn = document.getElementById('logSubmitBtn');
+  if(btn) btn.textContent = 'Ajouter au journal';
+  const annulerBtn = document.getElementById('logAnnulerBtn');
+  if(annulerBtn) annulerBtn.style.display = 'none';
+  if(reafficher !== false) renderLog();
 }
 function renderLog(){
   const el = document.getElementById('logList');
@@ -1407,6 +1605,7 @@ function renderLog(){
   el.innerHTML = sorted.map(e=>{
     const label = e.de===e.a ? ("chapitre "+e.de) : ("chapitres "+e.de+" à "+e.a);
     return '<div class="entry"><span class="del" onclick="delLog('+e.i+')">supprimer</span>'
+      + '<span class="del" style="color:var(--khaki-med); margin-right:8px;" onclick="modifierLog('+e.i+')">modifier</span>'
       + '<div class="meta">'+fmtDate(parseDate(e.date))+' · '+e.livre+'</div>'+label+'</div>';
   }).join('');
 }
@@ -2113,7 +2312,7 @@ function showPage(id){
   if(id === 'plans') renderThematicPlans();
   if(id === 'parametres') updateNotifUI();
   if(id === 'en-groupe') afficherVueListeGroupes();
-  if(id === 'admin') renderAvisAdmin();
+  if(id === 'admin'){ renderAvisAdmin(); renderUsersAdmin(); renderSuggestionsAdmin(); }
   updateMusicBarVisibility();
   closeMenu();
   window.scrollTo(0,0);
@@ -3093,7 +3292,7 @@ function afficherRapportGroupe(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=23').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=24').catch(()=>{});
   });
 }
 

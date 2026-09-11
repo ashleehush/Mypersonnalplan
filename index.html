@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Lato:ital,wght@0,400;0,700;1,400;1,700&family=Poppins:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Nunito:ital,wght@0,400;0,700;1,400;1,700&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=23">
+<link rel="stylesheet" href="style.css?v=24">
 </head>
 <body>
 
@@ -179,6 +179,18 @@
   </div>
 </div>
 
+<!-- Suggestion mensuelle de sujet — une fois par mois calendaire. -->
+<div id="suggestionPromptOverlay" class="notif-prompt-overlay no-print" hidden>
+  <div class="notif-prompt-box">
+    <div class="notif-prompt-icon">🗣️</div>
+    <h2>Quel sujet ce mois-ci ?</h2>
+    <p class="subnote">Quel sujet aimerais-tu étudier ou approfondir ce mois-ci ?</p>
+    <textarea id="suggestionTexte" placeholder="Ex : le pardon, la prière, l'espérance..." rows="3"></textarea>
+    <button onclick="envoyerSuggestion()">Envoyer ma suggestion</button>
+    <button onclick="reporterSuggestion()" style="background:none; color:var(--khaki-med);">Plus tard</button>
+  </div>
+</div>
+
 <div id="syncBadge" class="syncbadge local no-print">⚪ Mode local (non synchronisé)</div>
 
 <!-- Musique de fond — en dehors des pages (#appRoot) pour rester à l'écran
@@ -267,7 +279,8 @@
     </div>
     <label>Date</label>
     <input type="date" id="logDate">
-    <button onclick="addLog()">Ajouter au journal</button>
+    <button id="logSubmitBtn" onclick="addLog()">Ajouter au journal</button>
+    <button id="logAnnulerBtn" onclick="annulerModifLog()" style="background:none; color:var(--khaki-med); display:none;">Annuler la modification</button>
     <p style="font-size:.78rem; font-style:italic; opacity:.7; margin:10px 0 0;">💡 N'oublie pas de prendre des notes dans « Mes notes ».</p>
     <div id="logList" style="margin-top:12px;"></div>
   </div>
@@ -463,11 +476,19 @@
   <div class="card">
     <h2>🛠️ Espace admin</h2>
     <div class="subnote">Visible uniquement sur ton compte.</div>
+    <button onclick="window.print()" class="no-print">Imprimer / exporter tout en PDF</button>
+  </div>
+  <div class="card">
+    <h2>👥 Comptes inscrits</h2>
+    <div id="usersAdminListe" style="margin-top:12px;"></div>
   </div>
   <div class="card">
     <h2>⭐ Avis reçus</h2>
-    <button onclick="window.print()" class="no-print">Imprimer / exporter en PDF</button>
     <div id="avisAdminListe" style="margin-top:12px;"></div>
+  </div>
+  <div class="card">
+    <h2>🗣️ Suggestions de sujets</h2>
+    <div id="suggestionsAdminListe" style="margin-top:12px;"></div>
   </div>
 </section>
 
@@ -488,6 +509,16 @@
           <label>Date de début du plan</label>
           <input type="date" id="dateDebut">
           <button onclick="saveSettings()">Enregistrer</button>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <details>
+        <summary>💾 Mes données</summary>
+        <div style="margin-top:14px;">
+          <p class="subnote" style="margin-top:0;">Tes lectures sont déjà en sécurité dans le cloud (si tu es connectée). Ce bouton te permet en plus de garder une copie personnelle sur ton appareil, par exemple avant de changer de téléphone.</p>
+          <button onclick="telechargerMesDonnees()">📥 Télécharger mes données (fichier de sauvegarde)</button>
         </div>
       </details>
     </div>
@@ -674,7 +705,7 @@
 <script src="video-config.js"></script>
 <script src="music-config.js"></script>
 <script src="livres-config.js"></script>
-<script src="script.js?v=23"></script>
+<script src="script.js?v=24"></script>
 <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>
