@@ -307,6 +307,9 @@
       <option value="bordeaux">Bordeaux</option>
       <option value="anthracite">Anthracite</option>
       <option value="menthe">Menthe</option>
+      <option value="noir">Noir</option>
+      <option value="gris">Gris</option>
+      <option value="blanc">Blanc</option>
     </select>
     <label>Fond d'écran</label>
     <select id="bgSelect" onchange="setBackground(this.value)">
@@ -319,12 +322,22 @@
       <option value="nuages">Nuages</option>
       <option value="ciel">Ciel</option>
       <option value="aurore">Aurore boréale</option>
+      <option value="noir">⚫ Noir</option>
+      <option value="gris">⬜ Gris</option>
     </select>
   </div>
 
   <div class="card">
     <h2>🔔 Rappels</h2>
     <div class="detail" id="notifStatus" style="margin:4px 0 8px;">🔕 Rappels désactivés</div>
+    <label>Me rappeler si je n'ai rien lu depuis…</label>
+    <select id="notifRythmeSelect" onchange="setNotifRythme(this.value)">
+      <option value="1">1 jour</option>
+      <option value="2">2 jours</option>
+      <option value="3">3 jours</option>
+      <option value="5">5 jours</option>
+      <option value="7">1 semaine</option>
+    </select>
     <button id="notifBtn" onclick="toggleNotifs()">Activer les rappels</button>
   </div>
 </section>

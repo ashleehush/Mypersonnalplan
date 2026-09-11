@@ -583,6 +583,13 @@ function updateNotifUI(){
   status.className = "detail " + (on ? "on" : "off");
   btn.textContent = on ? "Désactiver les rappels" : "Activer les rappels";
   btn.disabled = !supported;
+  const rythmeSel = document.getElementById('notifRythmeSelect');
+  if(rythmeSel) rythmeSel.value = String((state.settings && state.settings.notifRythme) || 5);
+}
+function setNotifRythme(v){
+  if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
+  state.settings.notifRythme = parseInt(v,10) || 5;
+  persist();
 }
 function toggleNotifs(){
   if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
@@ -607,9 +614,10 @@ function checkAndNotify(force){
   const today = new Date(); today.setHours(0,0,0,0);
   const lastDate = state.chapterLog.reduce((max,e)=> e.date > max ? e.date : max, state.chapterLog[0].date);
   const gap = daysBetween(parseDate(lastDate), today);
+  const rythme = (state.settings && state.settings.notifRythme) || 5;
   const lastNotifKey = 'bible-tracker-last-notif';
   const lastNotif = localStorage.getItem(lastNotifKey);
-  if(gap >= 5 && (force || lastNotif !== todayStr())){
+  if(gap >= rythme && (force || lastNotif !== todayStr())){
     try{
       new Notification('Suivi de lecture biblique', {
         body: "Ça fait " + gap + " jours sans lecture enregistrée. Un chapitre suffit pour repartir 🙏",
@@ -635,6 +643,27 @@ function firebaseIsConfigured(){
 
 function todayStr(){ return new Date().toISOString().slice(0,10); }
 
+/* =========================================================================
+   RECONNEXION OBLIGATOIRE TOUS LES 30 JOURS — pour la sécurité du compte :
+   si personne n'a rouvert l'appli sur cet appareil depuis 30 jours, on force
+   une déconnexion et il faut retaper son mot de passe (ou Google) pour
+   continuer. C'est géré ici dans le code de l'appli (Firebase / GitHub
+   n'ont pas de réglage tout fait pour ça) : la date de dernière connexion
+   réussie est mémorisée sur l'appareil, et vérifiée à chaque ouverture.
+   ========================================================================= */
+const REAUTH_APRES_JOURS = 30;
+function reauthNecessaire(user){
+  try{
+    const cle = 'bible-tracker-derniere-connexion-' + user.uid;
+    const derniere = localStorage.getItem(cle);
+    if(derniere && daysBetween(parseDate(derniere), new Date()) >= REAUTH_APRES_JOURS) return true;
+  }catch(e){}
+  return false;
+}
+function marquerConnexionReussie(user){
+  try{ localStorage.setItem('bible-tracker-derniere-connexion-' + user.uid, todayStr()); }catch(e){}
+}
+
 function initCloudIfConfigured(){
   if(!firebaseIsConfigured()){
     setSyncBadge('local');
@@ -646,6 +675,12 @@ function initCloudIfConfigured(){
 
     firebase.auth().onAuthStateChanged(user=>{
       if(user){
+        if(reauthNecessaire(user)){
+          firebase.auth().signOut();
+          showLoginError("Pour ta sécurité, reconnecte-toi : ça fait 30 jours que tu n'étais pas revenue.");
+          return;
+        }
+        marquerConnexionReussie(user);
         useCloud = true;
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('appShell').style.display = '';
@@ -875,6 +910,11 @@ async function loadState(){
 }
 
 function persist(){
+  // On garde toujours une copie légère de l'apparence en local : ça permet de
+  // l'appliquer instantanément à la prochaine ouverture, sans attendre que le
+  // compte cloud réponde (et donc sans "flash" qui revient un instant aux
+  // couleurs par défaut avant de reprendre les bonnes).
+  try{ if(state.settings) localStorage.setItem('bible-tracker-settings-cache', JSON.stringify(state.settings)); }catch(e){}
   if(useCloud && cloudDocRef){
     if(suppressNextWrite){ suppressNextWrite = false; return; }
     cloudDocRef.set(state).catch(e=>{ console.error(e); setSyncBadge('error'); });
@@ -882,6 +922,16 @@ function persist(){
     try{ localStorage.setItem('bible-tracker-state-v2', JSON.stringify(state)); }
     catch(e){ console.error('erreur de sauvegarde', e); }
   }
+}
+function applyCachedAppearanceIfAny(){
+  try{
+    const raw = localStorage.getItem('bible-tracker-settings-cache');
+    if(raw){
+      const cached = JSON.parse(raw);
+      state.settings = Object.assign({palette:'dore', bg:'dore'}, cached);
+      applyAppearance();
+    }
+  }catch(e){}
 }
 function saveSettings(){
   state.dateDebut = document.getElementById('dateDebut').value;
@@ -1931,7 +1981,7 @@ function printReport(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=12').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=13').catch(()=>{});
   });
 }
 
@@ -1960,6 +2010,7 @@ function initialGateDisplay(){
   }
 }
 initialGateDisplay();
+applyCachedAppearanceIfAny();
 
 loadState();
 initCloudIfConfigured();
