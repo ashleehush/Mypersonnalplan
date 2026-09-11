@@ -514,12 +514,18 @@
   }
   .lock-divider::before, .lock-divider::after{ content:""; flex:1; height:1px; background:#e0d8c0; }
 
-  /* --- Ajouts : rubrique Sécurité et compte (Paramètres) --- */
-  #securityCard summary{
+  /* --- Ajouts : sections repliables de Paramètres (Réglages, Sécurité,
+     Apparence, Rappels) — toutes avec la même petite flèche qui tourne --- */
+  #page-parametres .card summary{
     cursor:pointer; font-weight:bold; color:var(--khaki-dark); font-size:1.05rem;
-    list-style:revert; padding:2px 0;
+    list-style:none; padding:2px 0 2px 24px; position:relative;
   }
-  #securityCard summary::-webkit-details-marker{ color:var(--gold); }
+  #page-parametres .card summary::-webkit-details-marker{ display:none; }
+  #page-parametres .card summary::before{
+    content:"▶"; position:absolute; left:0; top:2px; color:var(--gold); font-size:.85rem;
+    transition:transform .15s ease; display:inline-block;
+  }
+  #page-parametres .card details[open] summary::before{ transform:rotate(90deg); }
   .security-row{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
     background:var(--cream-alt); border-radius:10px; padding:10px 14px; margin-top:2px;
@@ -701,6 +707,37 @@
     background:#5A5A5A;
     background-attachment:fixed;
   }
+
+  /* --- Fonds animés (les 4 mêmes ambiances que l'écran de connexion),
+     utilisables partout dans l'appli via #appBgLayer --- */
+  body[data-bg="aube"]{
+    background: radial-gradient(120% 70% at 50% 100%, #E7B975 0%, #C98A3F 38%, #7A4A22 72%, #3A2410 100%);
+    background-attachment:fixed;
+  }
+  body[data-bg="nuit"]{
+    background: radial-gradient(120% 60% at 50% 0%, #2B2A3D 0%, #1B1A28 45%, #100F18 100%);
+    background-attachment:fixed;
+  }
+  body[data-bg="lumiere"]{
+    background: linear-gradient(165deg, #F0E9D8 0%, #E4D9B8 42%, #C9BB86 100%);
+    background-attachment:fixed;
+  }
+  body[data-bg="vagues"]{
+    background:#3A3524;
+    background-attachment:fixed;
+  }
+  #appBgLayer{
+    position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none; display:none;
+  }
+  body[data-bg="aube"] #appBgLayer,
+  body[data-bg="nuit"] #appBgLayer,
+  body[data-bg="lumiere"] #appBgLayer,
+  body[data-bg="vagues"] #appBgLayer{ display:block; }
+  body[data-bg="aube"] #appBgLayer .theme-a{ display:block; }
+  body[data-bg="nuit"] #appBgLayer .theme-b{ display:block; }
+  body[data-bg="lumiere"] #appBgLayer .theme-c{ display:block; }
+  body[data-bg="vagues"] #appBgLayer .theme-d{ display:block; }
+
   @media (min-width:700px){
     body[data-bg="mer"], body[data-bg="plage"], body[data-bg="nuages"],
     body[data-bg="ciel"], body[data-bg="aurore"]{

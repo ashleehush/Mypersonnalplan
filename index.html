@@ -11,6 +11,9 @@
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>Suivi de lecture biblique</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Lato:ital,wght@0,400;0,700;1,400;1,700&family=Poppins:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Nunito:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -86,6 +89,44 @@
 </div>
 
 <div id="appShell" style="display:none;">
+
+<div id="appBgLayer" class="no-print" aria-hidden="true">
+  <div class="theme-layer theme-a">
+    <div class="sunwrap"><div class="rays"></div><div class="sun"></div></div>
+    <div class="mote" style="left:18%; width:5px; height:5px; --drift:14px; animation-duration:9s; animation-delay:0s;"></div>
+    <div class="mote" style="left:32%; width:3px; height:3px; --drift:-10px; animation-duration:12s; animation-delay:2s;"></div>
+    <div class="mote" style="left:55%; width:6px; height:6px; --drift:18px; animation-duration:10s; animation-delay:4s;"></div>
+    <div class="mote" style="left:70%; width:4px; height:4px; --drift:-16px; animation-duration:8s; animation-delay:1.2s;"></div>
+    <div class="mote" style="left:82%; width:3px; height:3px; --drift:10px; animation-duration:11s; animation-delay:3.4s;"></div>
+    <div class="mote" style="left:45%; width:4px; height:4px; --drift:-8px; animation-duration:13s; animation-delay:5.5s;"></div>
+  </div>
+  <div class="theme-layer theme-b">
+    <div class="moon"></div>
+    <div class="star" style="left:12%; top:8%; width:2px; height:2px; animation-duration:3.2s; animation-delay:.2s;"></div>
+    <div class="star" style="left:22%; top:15%; width:3px; height:3px; animation-duration:4s; animation-delay:1.1s;"></div>
+    <div class="star" style="left:78%; top:10%; width:2px; height:2px; animation-duration:3.6s; animation-delay:.6s;"></div>
+    <div class="star" style="left:85%; top:20%; width:3px; height:3px; animation-duration:2.8s; animation-delay:1.8s;"></div>
+    <div class="star" style="left:8%; top:26%; width:2px; height:2px; animation-duration:4.4s; animation-delay:.9s;"></div>
+    <div class="star" style="left:65%; top:5%; width:2px; height:2px; animation-duration:3.1s; animation-delay:2.2s;"></div>
+    <div class="star" style="left:35%; top:9%; width:2px; height:2px; animation-duration:3.8s; animation-delay:1.5s;"></div>
+    <div class="star" style="left:92%; top:32%; width:2px; height:2px; animation-duration:3.3s; animation-delay:.3s;"></div>
+    <div class="star" style="left:48%; top:22%; width:2px; height:2px; animation-duration:4.1s; animation-delay:2.6s;"></div>
+    <div class="star" style="left:15%; top:35%; width:2px; height:2px; animation-duration:3.5s; animation-delay:1.9s;"></div>
+  </div>
+  <div class="theme-layer theme-c">
+    <div class="bokeh" style="left:10%; top:8%; width:30px; height:30px; --dx:18px; animation-duration:7s; animation-delay:0s;"></div>
+    <div class="bokeh" style="left:70%; top:12%; width:20px; height:20px; --dx:-14px; animation-duration:6s; animation-delay:1.4s;"></div>
+    <div class="bokeh" style="left:85%; top:6%; width:14px; height:14px; --dx:10px; animation-duration:5s; animation-delay:.6s;"></div>
+    <div class="bokeh" style="left:25%; top:20%; width:16px; height:16px; --dx:-12px; animation-duration:8s; animation-delay:2.2s;"></div>
+    <div class="bokeh" style="left:55%; top:4%; width:22px; height:22px; --dx:16px; animation-duration:6.6s; animation-delay:1s;"></div>
+    <div class="bokeh" style="left:40%; top:16%; width:12px; height:12px; --dx:-8px; animation-duration:5.6s; animation-delay:3s;"></div>
+  </div>
+  <div class="theme-layer theme-d">
+    <div class="blob b1"></div>
+    <div class="blob b2"></div>
+    <div class="blob b3"></div>
+  </div>
+</div>
 
 <div class="topbar no-print">
   <button class="hamburger" onclick="toggleMenu()" aria-label="Menu">☰</button>
@@ -247,10 +288,14 @@
 <!-- 5. PARAMÈTRES -->
 <section id="page-parametres" class="page" hidden>
   <div class="card">
-    <h2>Réglages</h2>
-    <label>Date de début du plan</label>
-    <input type="date" id="dateDebut">
-    <button onclick="saveSettings()">Enregistrer</button>
+    <details>
+      <summary>⚙️ Réglages</summary>
+      <div style="margin-top:14px;">
+        <label>Date de début du plan</label>
+        <input type="date" id="dateDebut">
+        <button onclick="saveSettings()">Enregistrer</button>
+      </div>
+    </details>
   </div>
 
   <div class="card" id="securityCard" style="display:none;">
@@ -294,51 +339,92 @@
   </div>
 
   <div class="card">
-    <h2>🎨 Apparence</h2>
-    <label>Palette de couleurs</label>
-    <select id="paletteSelect" onchange="setPalette(this.value)">
-      <option value="dore">Doré (classique)</option>
-      <option value="bleu">Bleu nuit</option>
-      <option value="rose">Rosé</option>
-      <option value="vert">Vert forêt</option>
-      <option value="violet">Violette</option>
-      <option value="corail">Corail</option>
-      <option value="turquoise">Turquoise</option>
-      <option value="bordeaux">Bordeaux</option>
-      <option value="anthracite">Anthracite</option>
-      <option value="menthe">Menthe</option>
-      <option value="noir">Noir</option>
-      <option value="gris">Gris</option>
-      <option value="blanc">Blanc</option>
-    </select>
-    <label>Fond d'écran</label>
-    <select id="bgSelect" onchange="setBackground(this.value)">
-      <option value="sombre">🌙 Sombre</option>
-      <option value="clair">☀️ Clair (blanc)</option>
-      <option value="auto">🔄 Personnalisé — change chaque jour (60 ambiances)</option>
-      <option value="dore">Doré (classique)</option>
-      <option value="mer">Mer</option>
-      <option value="plage">Plage</option>
-      <option value="nuages">Nuages</option>
-      <option value="ciel">Ciel</option>
-      <option value="aurore">Aurore boréale</option>
-      <option value="noir">⚫ Noir</option>
-      <option value="gris">⬜ Gris</option>
-    </select>
+    <details>
+      <summary>🎨 Apparence</summary>
+      <div style="margin-top:14px;">
+        <label>Palette de couleurs</label>
+        <select id="paletteSelect" onchange="setPalette(this.value)">
+          <option value="dore">Doré (classique)</option>
+          <option value="bleu">Bleu nuit</option>
+          <option value="rose">Rosé</option>
+          <option value="vert">Vert forêt</option>
+          <option value="violet">Violette</option>
+          <option value="corail">Corail</option>
+          <option value="turquoise">Turquoise</option>
+          <option value="bordeaux">Bordeaux</option>
+          <option value="anthracite">Anthracite</option>
+          <option value="menthe">Menthe</option>
+          <option value="noir">Noir</option>
+          <option value="gris">Gris</option>
+          <option value="blanc">Blanc</option>
+        </select>
+        <label style="margin-top:16px;">Fond d'écran</label>
+        <select id="bgSelect" onchange="setBackground(this.value)">
+          <option value="sombre">🌙 Sombre</option>
+          <option value="clair">☀️ Clair (blanc)</option>
+          <option value="auto">🔄 Personnalisé — change chaque jour (60 ambiances)</option>
+          <option value="dore">Doré (classique)</option>
+          <option value="mer">Mer</option>
+          <option value="plage">Plage</option>
+          <option value="nuages">Nuages</option>
+          <option value="ciel">Ciel</option>
+          <option value="aurore">Aurore boréale</option>
+          <option value="noir">⚫ Noir</option>
+          <option value="gris">⬜ Gris</option>
+          <option value="aube">🌅 Aube dorée (animé)</option>
+          <option value="nuit">🌙 Ciel nocturne (animé)</option>
+          <option value="lumiere">✨ Lumière vivante (animé)</option>
+          <option value="vagues">🌊 Vagues abstraites (animé)</option>
+        </select>
+
+        <label style="margin-top:16px;">Police de caractères</label>
+        <select id="fontSelect" onchange="setFontFamily(this.value)">
+          <option value="default">Avenir (par défaut)</option>
+          <option value="opensans">Open Sans</option>
+          <option value="lato">Lato</option>
+          <option value="poppins">Poppins</option>
+          <option value="nunito">Nunito</option>
+          <option value="merriweather">Merriweather</option>
+          <option value="playfair">Playfair Display</option>
+          <option value="georgia">Georgia</option>
+          <option value="times">Times New Roman</option>
+          <option value="verdana">Verdana</option>
+          <option value="courier">Courier New</option>
+          <option value="comic">Comic Sans MS</option>
+        </select>
+        <label style="margin-top:16px;">Style du texte</label>
+        <select id="fontStyleSelect" onchange="setFontStyle(this.value)">
+          <option value="normal">Normal</option>
+          <option value="gras">Gras</option>
+          <option value="italique">Italique</option>
+          <option value="gras-italique">Gras italique</option>
+        </select>
+        <label style="margin-top:16px;">Taille du texte</label>
+        <select id="fontSizeSelect" onchange="setFontSize(this.value)">
+          <option value="petit">Petit</option>
+          <option value="normal">Normal</option>
+          <option value="grand">Grand</option>
+          <option value="tresgrand">Très grand</option>
+        </select>
+      </div>
+    </details>
   </div>
 
   <div class="card">
-    <h2>🔔 Rappels</h2>
-    <div class="detail" id="notifStatus" style="margin:4px 0 8px;">🔕 Rappels désactivés</div>
-    <label>Me rappeler si je n'ai rien lu depuis…</label>
-    <select id="notifRythmeSelect" onchange="setNotifRythme(this.value)">
-      <option value="1">1 jour</option>
-      <option value="2">2 jours</option>
-      <option value="3">3 jours</option>
-      <option value="5">5 jours</option>
-      <option value="7">1 semaine</option>
-    </select>
-    <button id="notifBtn" onclick="toggleNotifs()">Activer les rappels</button>
+    <details>
+      <summary>🔔 Rappels</summary>
+      <div style="margin-top:14px;">
+        <div class="detail" id="notifStatus" style="margin:4px 0 8px;">🔕 Rappels désactivés</div>
+        <label>Me rappeler si je n'ai rien lu depuis…</label>
+        <select id="notifRythmeSelect" onchange="setNotifRythme(this.value)">
+          <option value="1">Tous les jours (quotidien)</option>
+          <option value="2">Tous les 2 jours</option>
+          <option value="3">Tous les 3 jours</option>
+          <option value="7">Toutes les semaines</option>
+        </select>
+        <button id="notifBtn" onclick="toggleNotifs()">Activer les rappels</button>
+      </div>
+    </details>
   </div>
 </section>
 

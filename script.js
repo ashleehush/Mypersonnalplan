@@ -335,6 +335,7 @@ function applyAppearance(){
     const arrow = document.getElementById('musicBarArrow');
     if(arrow) arrow.textContent = collapsed ? '▸' : '▾';
   }
+  applyTypography();
 }
 function setPalette(v){
   if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
@@ -345,6 +346,57 @@ function setBackground(v){
   if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
   state.settings.bg = v;
   persist(); applyAppearance();
+}
+
+/* =========================================================================
+   TYPOGRAPHIE — police, gras/italique, taille du texte, choisis dans
+   Apparence. Appliqués sur toute l'appli (body + taille de référence "rem").
+   ========================================================================= */
+const POLICES = {
+  default: '"Avenir","Segoe UI",sans-serif',
+  opensans: '"Open Sans",sans-serif',
+  lato: '"Lato",sans-serif',
+  poppins: '"Poppins",sans-serif',
+  nunito: '"Nunito",sans-serif',
+  merriweather: '"Merriweather",serif',
+  playfair: '"Playfair Display",serif',
+  georgia: 'Georgia,"Times New Roman",serif',
+  times: '"Times New Roman",Times,serif',
+  verdana: 'Verdana,Geneva,sans-serif',
+  courier: '"Courier New",Courier,monospace',
+  comic: '"Comic Sans MS","Comic Sans",cursive'
+};
+const TAILLES_TEXTE = { petit:'14px', normal:'16px', grand:'18px', tresgrand:'21px' };
+function applyTypography(){
+  if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
+  const fam = state.settings.fontFamily || 'default';
+  document.body.style.fontFamily = POLICES[fam] || POLICES.default;
+  const style = state.settings.fontStyle || 'normal';
+  document.body.style.fontWeight = (style === 'gras' || style === 'gras-italique') ? 'bold' : 'normal';
+  document.body.style.fontStyle = (style === 'italique' || style === 'gras-italique') ? 'italic' : 'normal';
+  const taille = state.settings.fontSize || 'normal';
+  document.documentElement.style.fontSize = TAILLES_TEXTE[taille] || TAILLES_TEXTE.normal;
+  const famSel = document.getElementById('fontSelect');
+  const styleSel = document.getElementById('fontStyleSelect');
+  const tailleSel = document.getElementById('fontSizeSelect');
+  if(famSel) famSel.value = fam;
+  if(styleSel) styleSel.value = style;
+  if(tailleSel) tailleSel.value = taille;
+}
+function setFontFamily(v){
+  if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
+  state.settings.fontFamily = v;
+  persist(); applyTypography();
+}
+function setFontStyle(v){
+  if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
+  state.settings.fontStyle = v;
+  persist(); applyTypography();
+}
+function setFontSize(v){
+  if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
+  state.settings.fontSize = v;
+  persist(); applyTypography();
 }
 
 /* =========================================================================
@@ -584,11 +636,11 @@ function updateNotifUI(){
   btn.textContent = on ? "Désactiver les rappels" : "Activer les rappels";
   btn.disabled = !supported;
   const rythmeSel = document.getElementById('notifRythmeSelect');
-  if(rythmeSel) rythmeSel.value = String((state.settings && state.settings.notifRythme) || 5);
+  if(rythmeSel) rythmeSel.value = String((state.settings && state.settings.notifRythme) || 1);
 }
 function setNotifRythme(v){
   if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
-  state.settings.notifRythme = parseInt(v,10) || 5;
+  state.settings.notifRythme = parseInt(v,10) || 1;
   persist();
 }
 function toggleNotifs(){
@@ -614,7 +666,7 @@ function checkAndNotify(force){
   const today = new Date(); today.setHours(0,0,0,0);
   const lastDate = state.chapterLog.reduce((max,e)=> e.date > max ? e.date : max, state.chapterLog[0].date);
   const gap = daysBetween(parseDate(lastDate), today);
-  const rythme = (state.settings && state.settings.notifRythme) || 5;
+  const rythme = (state.settings && state.settings.notifRythme) || 1;
   const lastNotifKey = 'bible-tracker-last-notif';
   const lastNotif = localStorage.getItem(lastNotifKey);
   if(gap >= rythme && (force || lastNotif !== todayStr())){
@@ -634,7 +686,15 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState 
    ========================================================================= */
 let useCloud = false;
 let cloudDocRef = null;
-let suppressNextWrite = false; // évite de ré-écrire ce qu'on vient de recevoir
+// Mémorise le contenu exact du dernier envoi vers le cloud : quand un
+// "snapshot" arrive avec EXACTEMENT ce contenu, c'est juste l'écho de notre
+// propre écriture (rien de nouveau à appliquer). On compare le CONTENU plutôt
+// que d'utiliser un simple drapeau "à ignorer une fois" : un drapeau générique
+// pouvait être "consommé" par un tout autre changement (ex. choisir une
+// palette juste après un changement de fond) et faire sauter silencieusement
+// sa sauvegarde — c'était la cause du bug où les couleurs choisies ne
+// restaient pas.
+let dernierEnvoiJSON = null;
 
 function firebaseIsConfigured(){
   return typeof firebaseConfig !== 'undefined'
@@ -690,8 +750,13 @@ function initCloudIfConfigured(){
         setSyncBadge('connecting');
         cloudDocRef.onSnapshot(snap=>{
           if(snap.exists){
-            suppressNextWrite = true;
-            state = Object.assign({dateDebut: todayStr(), chapterLog:[], compLog:[], prayers:[], settings:{palette:'dore',bg:'dore'}}, snap.data());
+            const data = snap.data();
+            if(JSON.stringify(data) === dernierEnvoiJSON){
+              // C'est l'écho de ce qu'on vient d'envoyer nous-mêmes : déjà à jour, rien à refaire.
+              setSyncBadge('synced');
+              return;
+            }
+            state = Object.assign({dateDebut: todayStr(), chapterLog:[], compLog:[], prayers:[], settings:{palette:'dore',bg:'dore'}}, data);
             if(!state.settings) state.settings = {palette:'dore', bg:'dore'};
             document.getElementById('dateDebut').value = state.dateDebut;
             renderLog(); renderComp(); renderPrayers(); compute(); refreshVerseSelects();
@@ -916,7 +981,7 @@ function persist(){
   // couleurs par défaut avant de reprendre les bonnes).
   try{ if(state.settings) localStorage.setItem('bible-tracker-settings-cache', JSON.stringify(state.settings)); }catch(e){}
   if(useCloud && cloudDocRef){
-    if(suppressNextWrite){ suppressNextWrite = false; return; }
+    dernierEnvoiJSON = JSON.stringify(state);
     cloudDocRef.set(state).catch(e=>{ console.error(e); setSyncBadge('error'); });
   } else {
     try{ localStorage.setItem('bible-tracker-state-v2', JSON.stringify(state)); }
@@ -1981,7 +2046,7 @@ function printReport(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=13').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=14').catch(()=>{});
   });
 }
 
@@ -2015,3 +2080,14 @@ applyCachedAppearanceIfAny();
 loadState();
 initCloudIfConfigured();
 renderVerseAndDate();
+
+/* Filet de sécurité : certains navigateurs (Safari sur iPad notamment)
+   restaurent le contenu des menus déroulants tout seuls quand on revient sur
+   la page (bouton retour, appli rouverte depuis l'écran d'accueil...), ce qui
+   peut réafficher un ancien choix dans le menu sans que ça change vraiment
+   l'apparence. On réapplique donc systématiquement les vraies valeurs
+   mémorisées à chaque fois que la page redevient visible. */
+window.addEventListener('pageshow', ()=>{ applyAppearance(); updateNotifUI(); });
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible'){ applyAppearance(); updateNotifUI(); }
+});
