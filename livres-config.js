@@ -1,12 +1,10 @@
 /* =========================================================================
-   PROPOSITIONS DE LIVRES CHRÉTIENS — la liste de livres que TOI tu veux
-   recommander (ce n'est pas une liste toute faite, c'est vide au départ,
-   à toi de la remplir avec tes propres choix).
+   PROPOSITIONS DE LIVRES CHRÉTIENS — un livre par ligne, sous la forme
+   { titre: "...", auteur: "..." }, séparés par une virgule.
 
-   Comment faire :
+   Pour changer ou compléter cette liste :
    1. Ouvre ce fichier directement sur GitHub.
-   2. Ajoute un livre par ligne, sous la forme { titre: "...", auteur: "..." },
-      séparés par une virgule (voir l'exemple ci-dessous, en commentaire).
+   2. Modifie / ajoute des lignes.
    3. Enregistre ("Commit changes").
 
    L'appli affiche une suggestion différente chaque jour sur la page
@@ -16,6 +14,15 @@
    reste masquée.
    ========================================================================= */
 const livresChretiens = [
-  // { titre: "Le Voyage du pèlerin", auteur: "John Bunyan" },
-  // { titre: "Simplement chrétien", auteur: "C.S. Lewis" },
+  { titre: "Le champ de bataille de l'esprit", auteur: "Joyce Meyer" },
+  { titre: "The Believer's Authority", auteur: "Kenneth E. Hagin" },
+  { titre: "Parle et déclare", auteur: "Dorothée Rajiah" },
+  { titre: "Soul Ties: The Unseen Bond in Relationships", auteur: "David Cross" },
+  { titre: "Construire un mariage heureux et durable !", auteur: "Yvan Castanou" },
+  { titre: "In Pursuit of Purpose", auteur: "Myles Munroe" },
+  { titre: "The Laws of Prosperity", auteur: "Kenneth Copeland" },
+  { titre: "God's Will for You", auteur: "Gloria Copeland" },
+  { titre: "If Satan Can't Steal Your Joy...", auteur: "Jerry Savelle" },
+  { titre: "Imagine Big", auteur: "Terri Savelle Foy" },
+  { titre: "Défi guérison : 21 jours pour voir vos premières guérisons", auteur: "Jérémy Pothin (avec David Théry)" },
 ];
