@@ -1087,8 +1087,30 @@ function initCloudIfConfigured(){
             renderSecurityCard(user);
             checkAndNotify();
           } else {
-            // premier lancement pour ce compte : on crée le document
-            cloudDocRef.set(state);
+            // Premier lancement pour ce compte : on crée le document cloud.
+            // Important : si l'appli tournait avant en mode local (sans
+            // Firebase configuré, ou avant la première connexion), une
+            // progression a pu être enregistrée uniquement sur cet appareil
+            // (localStorage). On la récupère ici pour ne RIEN perdre au
+            // moment où le cloud prend le relais.
+            try{
+              const raw = localStorage.getItem('bible-tracker-state-v2');
+              if(raw){
+                const localState = JSON.parse(raw);
+                const aDuContenu = localState && (
+                  (localState.chapterLog && localState.chapterLog.length) ||
+                  (localState.compLog && localState.compLog.length) ||
+                  (localState.prayers && localState.prayers.length)
+                );
+                if(aDuContenu){
+                  state = Object.assign({}, state, localState);
+                  document.getElementById('dateDebut').value = state.dateDebut;
+                  renderLog(); renderComp(); renderPrayers(); compute(); refreshVerseSelects();
+                  applyAppearance();
+                }
+              }
+            }catch(e){ console.error('Récupération de la sauvegarde locale impossible :', e); }
+            cloudDocRef.set(nettoyerPourFirestore(state));
           }
           setSyncBadge('synced');
         }, err=>{
