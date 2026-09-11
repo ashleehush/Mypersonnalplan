@@ -744,7 +744,8 @@ function initCloudIfConfigured(){
         useCloud = true;
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('appShell').style.display = '';
-        document.getElementById('securityCard').style.display = '';
+        const securiteTabBtn = document.getElementById('securiteTabBtn');
+        if(securiteTabBtn) securiteTabBtn.style.display = '';
         renderSecurityCard(user);
         cloudDocRef = firebase.firestore().collection('users').doc(user.uid).collection('state').doc('main');
         setSyncBadge('connecting');
@@ -1895,6 +1896,16 @@ function showPage(id){
   closeMenu();
   window.scrollTo(0,0);
 }
+/* Sous-onglets de la page Paramètres : "Réglage général" et "Sécurité",
+   attachés à Paramètres mais séparés l'un de l'autre (pas mélangés). */
+function showParamSubtab(name){
+  document.querySelectorAll('.param-subtab').forEach(el=>{
+    el.hidden = (el.id !== 'paramSubtab-' + name);
+  });
+  document.querySelectorAll('.subtab-btn').forEach(btn=>{
+    btn.classList.toggle('active', btn.dataset.subtab === name);
+  });
+}
 function toggleMenu(){
   document.getElementById('sideMenu').classList.toggle('open');
   document.getElementById('menuOverlay').classList.toggle('show');
@@ -2046,7 +2057,7 @@ function printReport(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=14').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=15').catch(()=>{});
   });
 }
 

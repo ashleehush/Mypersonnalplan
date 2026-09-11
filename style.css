@@ -526,6 +526,20 @@
     transition:transform .15s ease; display:inline-block;
   }
   #page-parametres .card details[open] summary::before{ transform:rotate(90deg); }
+
+  /* --- Ajouts : sous-onglets de Paramètres (Réglage général / Sécurité) --- */
+  .subtabs{
+    display:flex; gap:8px; margin:0 0 16px; border-bottom:2px solid var(--gold-light);
+  }
+  .subtab-btn{
+    flex:1; width:auto; margin:0; padding:11px 8px; border-radius:10px 10px 0 0;
+    background:none; color:var(--khaki-med); font-weight:bold; font-size:.92rem;
+    border-bottom:3px solid transparent; margin-bottom:-2px;
+  }
+  .subtab-btn.active{ color:var(--khaki-dark); border-bottom-color:var(--gold); }
+  .param-subtab{ display:block; }
+  .param-subtab[hidden]{ display:none; }
+
   .security-row{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
     background:var(--cream-alt); border-radius:10px; padding:10px 14px; margin-top:2px;

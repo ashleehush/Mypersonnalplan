@@ -287,144 +287,152 @@
 
 <!-- 5. PARAMÈTRES -->
 <section id="page-parametres" class="page" hidden>
-  <div class="card">
-    <details>
-      <summary>⚙️ Réglages</summary>
-      <div style="margin-top:14px;">
-        <label>Date de début du plan</label>
-        <input type="date" id="dateDebut">
-        <button onclick="saveSettings()">Enregistrer</button>
-      </div>
-    </details>
+
+  <div class="subtabs no-print">
+    <button type="button" class="subtab-btn active" data-subtab="general" onclick="showParamSubtab('general')">Réglage général</button>
+    <button type="button" class="subtab-btn" id="securiteTabBtn" data-subtab="securite" onclick="showParamSubtab('securite')" style="display:none;">🔒 Sécurité</button>
   </div>
 
-  <div class="card" id="securityCard" style="display:none;">
-    <details>
-      <summary>🔒 Sécurité et compte</summary>
-      <div style="margin-top:14px;">
+  <div id="paramSubtab-general" class="param-subtab">
 
-        <label>Adresse e-mail</label>
-        <div class="security-row">
-          <div class="security-value" id="secEmailValue"></div>
-          <button type="button" class="security-edit-btn" onclick="toggleEditEmail()">Modifier</button>
+    <div class="card">
+      <details>
+        <summary>⚙️ Réglages</summary>
+        <div style="margin-top:14px;">
+          <label>Date de début du plan</label>
+          <input type="date" id="dateDebut">
+          <button onclick="saveSettings()">Enregistrer</button>
         </div>
-        <div id="secEmailDate" class="security-date"></div>
-        <div id="secEmailEdit" class="security-edit" hidden>
-          <input type="email" id="secEmailInput" placeholder="Nouvelle adresse e-mail">
-          <div class="security-edit-actions">
-            <button type="button" onclick="saveNewEmail()">Enregistrer</button>
-            <button type="button" class="security-cancel" onclick="toggleEditEmail(true)">Annuler</button>
-          </div>
-        </div>
+      </details>
+    </div>
 
-        <label style="margin-top:18px;">Mot de passe</label>
-        <div class="security-row">
-          <div class="security-value">••••••••</div>
-          <button type="button" class="security-edit-btn" onclick="toggleEditPassword()">Modifier</button>
-        </div>
-        <div id="secPasswordDate" class="security-date"></div>
-        <div id="secPasswordEdit" class="security-edit" hidden>
-          <input type="password" id="secPasswordInput" placeholder="Nouveau mot de passe (6 caractères min.)">
-          <div class="security-edit-actions">
-            <button type="button" onclick="saveNewPassword()">Enregistrer</button>
-            <button type="button" class="security-cancel" onclick="toggleEditPassword(true)">Annuler</button>
-          </div>
-        </div>
+    <div class="card">
+      <details>
+        <summary>🎨 Apparence</summary>
+        <div style="margin-top:14px;">
+          <label>Palette de couleurs</label>
+          <select id="paletteSelect" onchange="setPalette(this.value)">
+            <option value="dore">Doré (classique)</option>
+            <option value="bleu">Bleu nuit</option>
+            <option value="rose">Rosé</option>
+            <option value="vert">Vert forêt</option>
+            <option value="violet">Violette</option>
+            <option value="corail">Corail</option>
+            <option value="turquoise">Turquoise</option>
+            <option value="bordeaux">Bordeaux</option>
+            <option value="anthracite">Anthracite</option>
+            <option value="menthe">Menthe</option>
+            <option value="noir">Noir</option>
+            <option value="gris">Gris</option>
+            <option value="blanc">Blanc</option>
+          </select>
+          <label style="margin-top:16px;">Fond d'écran</label>
+          <select id="bgSelect" onchange="setBackground(this.value)">
+            <option value="sombre">🌙 Sombre</option>
+            <option value="clair">☀️ Clair (blanc)</option>
+            <option value="auto">🔄 Personnalisé — change chaque jour (60 ambiances)</option>
+            <option value="dore">Doré (classique)</option>
+            <option value="mer">Mer</option>
+            <option value="plage">Plage</option>
+            <option value="nuages">Nuages</option>
+            <option value="ciel">Ciel</option>
+            <option value="aurore">Aurore boréale</option>
+            <option value="noir">⚫ Noir</option>
+            <option value="gris">⬜ Gris</option>
+            <option value="aube">🌅 Aube dorée (animé)</option>
+            <option value="nuit">🌙 Ciel nocturne (animé)</option>
+            <option value="lumiere">✨ Lumière vivante (animé)</option>
+            <option value="vagues">🌊 Vagues abstraites (animé)</option>
+          </select>
 
-        <div id="secMessage" class="security-message" hidden></div>
+          <label style="margin-top:16px;">Police de caractères</label>
+          <select id="fontSelect" onchange="setFontFamily(this.value)">
+            <option value="default">Avenir (par défaut)</option>
+            <option value="opensans">Open Sans</option>
+            <option value="lato">Lato</option>
+            <option value="poppins">Poppins</option>
+            <option value="nunito">Nunito</option>
+            <option value="merriweather">Merriweather</option>
+            <option value="playfair">Playfair Display</option>
+            <option value="georgia">Georgia</option>
+            <option value="times">Times New Roman</option>
+            <option value="verdana">Verdana</option>
+            <option value="courier">Courier New</option>
+            <option value="comic">Comic Sans MS</option>
+          </select>
+          <label style="margin-top:16px;">Style du texte</label>
+          <select id="fontStyleSelect" onchange="setFontStyle(this.value)">
+            <option value="normal">Normal</option>
+            <option value="gras">Gras</option>
+            <option value="italique">Italique</option>
+            <option value="gras-italique">Gras italique</option>
+          </select>
+          <label style="margin-top:16px;">Taille du texte</label>
+          <select id="fontSizeSelect" onchange="setFontSize(this.value)">
+            <option value="petit">Petit</option>
+            <option value="normal">Normal</option>
+            <option value="grand">Grand</option>
+            <option value="tresgrand">Très grand</option>
+          </select>
+        </div>
+      </details>
+    </div>
 
-        <button onclick="logout()" style="background:var(--khaki-med); margin-top:18px;">Se déconnecter</button>
-      </div>
-    </details>
+    <div class="card">
+      <details>
+        <summary>🔔 Rappels</summary>
+        <div style="margin-top:14px;">
+          <div class="detail" id="notifStatus" style="margin:4px 0 8px;">🔕 Rappels désactivés</div>
+          <label>Me rappeler si je n'ai rien lu depuis…</label>
+          <select id="notifRythmeSelect" onchange="setNotifRythme(this.value)">
+            <option value="1">Tous les jours (quotidien)</option>
+            <option value="2">Tous les 2 jours</option>
+            <option value="3">Tous les 3 jours</option>
+            <option value="7">Toutes les semaines</option>
+          </select>
+          <button id="notifBtn" onclick="toggleNotifs()">Activer les rappels</button>
+        </div>
+      </details>
+    </div>
+
   </div>
 
-  <div class="card">
-    <details>
-      <summary>🎨 Apparence</summary>
-      <div style="margin-top:14px;">
-        <label>Palette de couleurs</label>
-        <select id="paletteSelect" onchange="setPalette(this.value)">
-          <option value="dore">Doré (classique)</option>
-          <option value="bleu">Bleu nuit</option>
-          <option value="rose">Rosé</option>
-          <option value="vert">Vert forêt</option>
-          <option value="violet">Violette</option>
-          <option value="corail">Corail</option>
-          <option value="turquoise">Turquoise</option>
-          <option value="bordeaux">Bordeaux</option>
-          <option value="anthracite">Anthracite</option>
-          <option value="menthe">Menthe</option>
-          <option value="noir">Noir</option>
-          <option value="gris">Gris</option>
-          <option value="blanc">Blanc</option>
-        </select>
-        <label style="margin-top:16px;">Fond d'écran</label>
-        <select id="bgSelect" onchange="setBackground(this.value)">
-          <option value="sombre">🌙 Sombre</option>
-          <option value="clair">☀️ Clair (blanc)</option>
-          <option value="auto">🔄 Personnalisé — change chaque jour (60 ambiances)</option>
-          <option value="dore">Doré (classique)</option>
-          <option value="mer">Mer</option>
-          <option value="plage">Plage</option>
-          <option value="nuages">Nuages</option>
-          <option value="ciel">Ciel</option>
-          <option value="aurore">Aurore boréale</option>
-          <option value="noir">⚫ Noir</option>
-          <option value="gris">⬜ Gris</option>
-          <option value="aube">🌅 Aube dorée (animé)</option>
-          <option value="nuit">🌙 Ciel nocturne (animé)</option>
-          <option value="lumiere">✨ Lumière vivante (animé)</option>
-          <option value="vagues">🌊 Vagues abstraites (animé)</option>
-        </select>
+  <div id="paramSubtab-securite" class="param-subtab" hidden>
+    <div class="card" id="securityCard">
+      <h2>🔒 Sécurité et compte</h2>
 
-        <label style="margin-top:16px;">Police de caractères</label>
-        <select id="fontSelect" onchange="setFontFamily(this.value)">
-          <option value="default">Avenir (par défaut)</option>
-          <option value="opensans">Open Sans</option>
-          <option value="lato">Lato</option>
-          <option value="poppins">Poppins</option>
-          <option value="nunito">Nunito</option>
-          <option value="merriweather">Merriweather</option>
-          <option value="playfair">Playfair Display</option>
-          <option value="georgia">Georgia</option>
-          <option value="times">Times New Roman</option>
-          <option value="verdana">Verdana</option>
-          <option value="courier">Courier New</option>
-          <option value="comic">Comic Sans MS</option>
-        </select>
-        <label style="margin-top:16px;">Style du texte</label>
-        <select id="fontStyleSelect" onchange="setFontStyle(this.value)">
-          <option value="normal">Normal</option>
-          <option value="gras">Gras</option>
-          <option value="italique">Italique</option>
-          <option value="gras-italique">Gras italique</option>
-        </select>
-        <label style="margin-top:16px;">Taille du texte</label>
-        <select id="fontSizeSelect" onchange="setFontSize(this.value)">
-          <option value="petit">Petit</option>
-          <option value="normal">Normal</option>
-          <option value="grand">Grand</option>
-          <option value="tresgrand">Très grand</option>
-        </select>
+      <label>Adresse e-mail</label>
+      <div class="security-row">
+        <div class="security-value" id="secEmailValue"></div>
+        <button type="button" class="security-edit-btn" onclick="toggleEditEmail()">Modifier</button>
       </div>
-    </details>
-  </div>
+      <div id="secEmailDate" class="security-date"></div>
+      <div id="secEmailEdit" class="security-edit" hidden>
+        <input type="email" id="secEmailInput" placeholder="Nouvelle adresse e-mail">
+        <div class="security-edit-actions">
+          <button type="button" onclick="saveNewEmail()">Enregistrer</button>
+          <button type="button" class="security-cancel" onclick="toggleEditEmail(true)">Annuler</button>
+        </div>
+      </div>
 
-  <div class="card">
-    <details>
-      <summary>🔔 Rappels</summary>
-      <div style="margin-top:14px;">
-        <div class="detail" id="notifStatus" style="margin:4px 0 8px;">🔕 Rappels désactivés</div>
-        <label>Me rappeler si je n'ai rien lu depuis…</label>
-        <select id="notifRythmeSelect" onchange="setNotifRythme(this.value)">
-          <option value="1">Tous les jours (quotidien)</option>
-          <option value="2">Tous les 2 jours</option>
-          <option value="3">Tous les 3 jours</option>
-          <option value="7">Toutes les semaines</option>
-        </select>
-        <button id="notifBtn" onclick="toggleNotifs()">Activer les rappels</button>
+      <label style="margin-top:18px;">Mot de passe</label>
+      <div class="security-row">
+        <div class="security-value">••••••••</div>
+        <button type="button" class="security-edit-btn" onclick="toggleEditPassword()">Modifier</button>
       </div>
-    </details>
+      <div id="secPasswordDate" class="security-date"></div>
+      <div id="secPasswordEdit" class="security-edit" hidden>
+        <input type="password" id="secPasswordInput" placeholder="Nouveau mot de passe (6 caractères min.)">
+        <div class="security-edit-actions">
+          <button type="button" onclick="saveNewPassword()">Enregistrer</button>
+          <button type="button" class="security-cancel" onclick="toggleEditPassword(true)">Annuler</button>
+        </div>
+      </div>
+
+      <div id="secMessage" class="security-message" hidden></div>
+
+      <button onclick="logout()" style="background:var(--khaki-med); margin-top:18px;">Se déconnecter</button>
+    </div>
   </div>
 </section>
 
