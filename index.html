@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Lato:ital,wght@0,400;0,700;1,400;1,700&family=Poppins:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Nunito:ital,wght@0,400;0,700;1,400;1,700&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=21">
+<link rel="stylesheet" href="style.css?v=22">
 </head>
 <body>
 
@@ -143,6 +143,7 @@
   <button data-page="en-groupe" onclick="showPage('en-groupe')">🧑‍🤝‍🧑 En groupe</button>
   <button data-page="rapports" onclick="showPage('rapports')">📄 Rapports</button>
   <button data-page="parametres" onclick="showPage('parametres')">⚙️ Paramètres</button>
+  <button data-page="admin" id="navAdminBtn" onclick="showPage('admin')" style="display:none;">🛠️ Espace admin</button>
 </nav>
 <div id="menuOverlay" class="menu-overlay no-print" onclick="toggleMenu()"></div>
 
@@ -155,6 +156,26 @@
     <p class="subnote">Reçois une petite notification si tu n'as pas enregistré de lecture depuis quelques jours. Tu pourras changer d'avis à tout moment dans Paramètres → Rappels.</p>
     <button onclick="repondrePromptNotif(true)">🔔 Activer les rappels</button>
     <button onclick="repondrePromptNotif(false)" style="background:none; color:var(--khaki-med);">Plus tard</button>
+  </div>
+</div>
+
+<!-- Demande d'avis 5 étoiles — affichée une fois à 7 jours, 1 mois et 3 mois
+     après la création du compte (une seule fois par palier). -->
+<div id="avisPromptOverlay" class="notif-prompt-overlay no-print" hidden>
+  <div class="notif-prompt-box">
+    <div class="notif-prompt-icon">⭐</div>
+    <h2>Ton avis nous aide !</h2>
+    <p class="subnote" id="avisPromptSousTitre">Comment trouves-tu l'application pour l'instant ?</p>
+    <div class="avis-etoiles" id="avisEtoiles">
+      <span class="avis-etoile" data-valeur="1" onclick="choisirEtoile(1)">★</span>
+      <span class="avis-etoile" data-valeur="2" onclick="choisirEtoile(2)">★</span>
+      <span class="avis-etoile" data-valeur="3" onclick="choisirEtoile(3)">★</span>
+      <span class="avis-etoile" data-valeur="4" onclick="choisirEtoile(4)">★</span>
+      <span class="avis-etoile" data-valeur="5" onclick="choisirEtoile(5)">★</span>
+    </div>
+    <textarea id="avisCommentaire" placeholder="Un commentaire ? (facultatif)" rows="3"></textarea>
+    <button onclick="envoyerAvis()">Envoyer mon avis</button>
+    <button onclick="reporterAvis()" style="background:none; color:var(--khaki-med);">Plus tard</button>
   </div>
 </div>
 
@@ -435,6 +456,21 @@
   <div id="rapportPreview"></div>
 </section>
 
+<!-- ESPACE ADMIN — visible uniquement pour le compte gérant l'application
+     (vérifié côté script.js ET côté règles Firestore : même sans ce bouton,
+     personne d'autre ne peut lire cette collection). -->
+<section id="page-admin" class="page" hidden>
+  <div class="card">
+    <h2>🛠️ Espace admin</h2>
+    <div class="subnote">Visible uniquement sur ton compte.</div>
+  </div>
+  <div class="card">
+    <h2>⭐ Avis reçus</h2>
+    <button onclick="window.print()" class="no-print">Imprimer / exporter en PDF</button>
+    <div id="avisAdminListe" style="margin-top:12px;"></div>
+  </div>
+</section>
+
 <!-- 5. PARAMÈTRES -->
 <section id="page-parametres" class="page" hidden>
 
@@ -638,7 +674,7 @@
 <script src="video-config.js"></script>
 <script src="music-config.js"></script>
 <script src="livres-config.js"></script>
-<script src="script.js?v=21"></script>
+<script src="script.js?v=22"></script>
 <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>

@@ -712,6 +712,114 @@ function repondrePromptNotif(accepter){
   }).catch(e=> console.error(e));
 }
 
+/* =========================================================================
+   AVIS 5 ÉTOILES — proposé une seule fois à 7 jours, 1 mois et 3 mois après
+   la création du compte (calculé depuis currentUser.metadata.creationTime,
+   fourni par Firebase Auth — pas besoin de le stocker nous-mêmes). Stocké
+   dans une collection Firestore séparée ("avisApp"), lisible uniquement par
+   son auteur et par le compte gérant l'application (voir les règles
+   Firestore), pour qu'il/elle puisse consulter et exporter les avis reçus
+   depuis l'Espace admin. Ne concerne que les comptes connectés au cloud —
+   en mode local, il n'y a personne pour lire l'avis, donc on ne le demande
+   jamais.
+   ========================================================================= */
+const ADMIN_EMAIL = 'ashleymubama@gmail.com';
+function estAdmin(user){
+  return !!(user && user.email && user.email.toLowerCase() === ADMIN_EMAIL);
+}
+const AVIS_PALIERS = [
+  { cle:'j7', jours:7, texte:"Ça fait une semaine que tu utilises l'application : comment la trouves-tu ?" },
+  { cle:'m1', jours:30, texte:"Ça fait un mois maintenant : toujours du même avis, ou ça a changé ?" },
+  { cle:'m3', jours:90, texte:"3 mois d'utilisation : quel avis donnerais-tu aujourd'hui ?" }
+];
+let etoileChoisie = 0;
+let jalonAvisActuel = null;
+function verifierAvisMilestones(){
+  try{
+    if(!currentUser || !currentUser.metadata || !currentUser.metadata.creationTime) return;
+    // On ne superpose jamais deux popups : si celle des rappels est encore
+    // affichée, on retente un peu plus tard plutôt que de les empiler.
+    const notifOverlay = document.getElementById('notifPromptOverlay');
+    if(notifOverlay && !notifOverlay.hidden){ setTimeout(verifierAvisMilestones, 1500); return; }
+    const snooze = localStorage.getItem('bible-tracker-avis-snooze');
+    if(snooze && new Date(snooze) > new Date()) return;
+    if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
+    if(!state.settings.avisEnvoyes) state.settings.avisEnvoyes = {};
+    const joursDepuisInscription = Math.floor((Date.now() - new Date(currentUser.metadata.creationTime).getTime()) / 86400000);
+    const palier = AVIS_PALIERS.find(p => joursDepuisInscription >= p.jours && !state.settings.avisEnvoyes[p.cle]);
+    if(!palier) return;
+    jalonAvisActuel = palier.cle;
+    etoileChoisie = 0;
+    document.querySelectorAll('.avis-etoile').forEach(e=> e.classList.remove('pleine'));
+    const commentEl = document.getElementById('avisCommentaire');
+    if(commentEl) commentEl.value = '';
+    const sousTitre = document.getElementById('avisPromptSousTitre');
+    if(sousTitre) sousTitre.textContent = palier.texte;
+    const overlay = document.getElementById('avisPromptOverlay');
+    if(overlay) overlay.hidden = false;
+  }catch(e){ console.error('Erreur avis :', e); }
+}
+function choisirEtoile(n){
+  etoileChoisie = n;
+  document.querySelectorAll('.avis-etoile').forEach(e=>{
+    e.classList.toggle('pleine', parseInt(e.dataset.valeur,10) <= n);
+  });
+}
+function envoyerAvis(){
+  if(!etoileChoisie){ alert("Choisis une note de 1 à 5 étoiles avant d'envoyer."); return; }
+  const commentaire = (document.getElementById('avisCommentaire').value || '').trim();
+  const overlay = document.getElementById('avisPromptOverlay');
+  if(overlay) overlay.hidden = true;
+  if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
+  if(!state.settings.avisEnvoyes) state.settings.avisEnvoyes = {};
+  state.settings.avisEnvoyes[jalonAvisActuel] = true;
+  try{ persist(); }catch(e){ console.error('Erreur de sauvegarde (avis) :', e); }
+  if(useCloud && currentUser){
+    firebase.firestore().collection('avisApp').add({
+      uid: currentUser.uid,
+      email: currentUser.email || null,
+      note: etoileChoisie,
+      commentaire: commentaire,
+      jalon: jalonAvisActuel,
+      date: new Date().toISOString()
+    }).catch(e=> console.error("Erreur d'envoi de l'avis :", e));
+  }
+}
+function reporterAvis(){
+  const overlay = document.getElementById('avisPromptOverlay');
+  if(overlay) overlay.hidden = true;
+  // On redemande dans 24h plutôt qu'à la prochaine ouverture — moins
+  // insistant que le rappel des notifications, qui lui ne revient jamais.
+  const demain = new Date(Date.now() + 24*60*60*1000);
+  try{ localStorage.setItem('bible-tracker-avis-snooze', demain.toISOString()); }catch(e){}
+}
+function renderAvisAdmin(){
+  const box = document.getElementById('avisAdminListe');
+  if(!box) return;
+  if(!estAdmin(currentUser)){
+    box.innerHTML = '<div class="empty">Accès réservé.</div>';
+    return;
+  }
+  box.innerHTML = '<div class="empty">Chargement…</div>';
+  firebase.firestore().collection('avisApp').orderBy('date','desc').get().then(snap=>{
+    if(snap.empty){ box.innerHTML = '<div class="empty">Aucun avis reçu pour l\'instant.</div>'; return; }
+    box.innerHTML = snap.docs.map(doc=>{
+      const a = doc.data();
+      const etoiles = '★'.repeat(a.note||0) + '☆'.repeat(5-(a.note||0));
+      const d = a.date ? fmtDate(new Date(a.date)) : '';
+      const palierLabel = { j7:'7 jours', m1:'1 mois', m3:'3 mois' }[a.jalon] || a.jalon || '';
+      return '<div class="avis-admin-item">'
+        + '<div class="avis-admin-etoiles">'+etoiles+'</div>'
+        + '<div class="detail" style="margin-top:2px;">'+d+' · palier '+palierLabel+(a.email?(' · '+echapperHtml(a.email)):'')+'</div>'
+        + (a.commentaire ? '<div style="margin-top:4px;">'+echapperHtml(a.commentaire)+'</div>' : '')
+        + '</div>';
+    }).join('');
+  }).catch(e=>{
+    console.error('Erreur de lecture des avis :', e);
+    box.innerHTML = '<div class="empty">Impossible de charger les avis (vérifie ta connexion).</div>';
+  });
+}
+
 function checkAndNotify(force){
   if(!state.settings || !state.settings.notifs) return;
   if(!('Notification' in window) || Notification.permission !== 'granted') return;
@@ -805,7 +913,10 @@ function initCloudIfConfigured(){
         currentUser = user;
         document.getElementById('loginScreen').style.display = 'none';
         document.getElementById('appShell').style.display = '';
+        const navAdminBtn = document.getElementById('navAdminBtn');
+        if(navAdminBtn) navAdminBtn.style.display = estAdmin(user) ? '' : 'none';
         setTimeout(verifierPromptNotifications, 900);
+        setTimeout(verifierAvisMilestones, 1600);
         const securiteTabBtn = document.getElementById('securiteTabBtn');
         if(securiteTabBtn) securiteTabBtn.style.display = '';
         renderSecurityCard(user);
@@ -853,6 +964,8 @@ function initCloudIfConfigured(){
         currentUser = null;
         arreterGroupes();
         pickLoginTheme();
+        const navAdminBtnOut = document.getElementById('navAdminBtn');
+        if(navAdminBtnOut) navAdminBtnOut.style.display = 'none';
         document.getElementById('loginScreen').style.display = 'flex';
         document.getElementById('appShell').style.display = 'none';
       }
@@ -2000,6 +2113,7 @@ function showPage(id){
   if(id === 'plans') renderThematicPlans();
   if(id === 'parametres') updateNotifUI();
   if(id === 'en-groupe') afficherVueListeGroupes();
+  if(id === 'admin') renderAvisAdmin();
   updateMusicBarVisibility();
   closeMenu();
   window.scrollTo(0,0);
@@ -2979,7 +3093,7 @@ function afficherRapportGroupe(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=21').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=22').catch(()=>{});
   });
 }
 
