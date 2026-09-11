@@ -340,12 +340,17 @@ function applyAppearance(){
 function setPalette(v){
   if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
   state.settings.palette = v;
-  persist(); applyAppearance();
+  // On applique D'ABORD visuellement (jamais bloqué par un souci de sauvegarde
+  // réseau), PUIS on essaie d'enregistrer — ainsi le changement se voit tout
+  // de suite, même si la sauvegarde cloud rencontre un problème.
+  applyAppearance();
+  try{ persist(); }catch(e){ console.error('Erreur de sauvegarde (palette) :', e); }
 }
 function setBackground(v){
   if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
   state.settings.bg = v;
-  persist(); applyAppearance();
+  applyAppearance();
+  try{ persist(); }catch(e){ console.error('Erreur de sauvegarde (fond) :', e); }
 }
 
 /* =========================================================================
@@ -386,17 +391,20 @@ function applyTypography(){
 function setFontFamily(v){
   if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
   state.settings.fontFamily = v;
-  persist(); applyTypography();
+  applyTypography();
+  try{ persist(); }catch(e){ console.error('Erreur de sauvegarde (police) :', e); }
 }
 function setFontStyle(v){
   if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
   state.settings.fontStyle = v;
-  persist(); applyTypography();
+  applyTypography();
+  try{ persist(); }catch(e){ console.error('Erreur de sauvegarde (style) :', e); }
 }
 function setFontSize(v){
   if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
   state.settings.fontSize = v;
-  persist(); applyTypography();
+  applyTypography();
+  try{ persist(); }catch(e){ console.error('Erreur de sauvegarde (taille) :', e); }
 }
 
 /* =========================================================================
@@ -641,7 +649,7 @@ function updateNotifUI(){
 function setNotifRythme(v){
   if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
   state.settings.notifRythme = parseInt(v,10) || 1;
-  persist();
+  try{ persist(); }catch(e){ console.error('Erreur de sauvegarde (rythme) :', e); }
 }
 function toggleNotifs(){
   if(!state.settings) state.settings = { palette:'dore', bg:'dore' };
@@ -695,6 +703,12 @@ let cloudDocRef = null;
 // sa sauvegarde — c'était la cause du bug où les couleurs choisies ne
 // restaient pas.
 let dernierEnvoiJSON = null;
+// state._rev : compteur qui augmente à CHAQUE modification locale (peu importe
+// laquelle). Si on enchaîne plusieurs changements très vite (ex. palette puis
+// fond puis police), les confirmations du serveur peuvent revenir dans le
+// désordre à cause du réseau — sans ce numéro, une confirmation "en retard"
+// pouvait écraser un changement plus récent. Avec lui, on ignore simplement
+// toute donnée reçue dont le numéro est plus vieux que ce qu'on a déjà.
 
 function firebaseIsConfigured(){
   return typeof firebaseConfig !== 'undefined'
@@ -754,6 +768,14 @@ function initCloudIfConfigured(){
             const data = snap.data();
             if(JSON.stringify(data) === dernierEnvoiJSON){
               // C'est l'écho de ce qu'on vient d'envoyer nous-mêmes : déjà à jour, rien à refaire.
+              setSyncBadge('synced');
+              return;
+            }
+            const revEntrante = data._rev || 0;
+            const revLocale = state._rev || 0;
+            if(revEntrante < revLocale){
+              // Une confirmation "en retard" (arrivée après un changement plus
+              // récent fait entre-temps) : on l'ignore pour ne pas revenir en arrière.
               setSyncBadge('synced');
               return;
             }
@@ -975,15 +997,32 @@ async function loadState(){
   }
 }
 
+// Firestore refuse tout document contenant une valeur "undefined" (erreur
+// immédiate, avant même d'envoyer sur le réseau) — passer l'objet par
+// JSON.stringify/parse élimine automatiquement ces valeurs (JSON n'a pas de
+// notion d'"undefined"), ce qui protège la sauvegarde de tout plantage lié à
+// un champ optionnel non renseigné.
+function nettoyerPourFirestore(obj){
+  return JSON.parse(JSON.stringify(obj));
+}
+
 function persist(){
+  // Voir la note plus haut sur state._rev : ce numéro augmente à chaque
+  // sauvegarde pour repérer et ignorer les confirmations réseau "en retard".
+  state._rev = (state._rev || 0) + 1;
   // On garde toujours une copie légère de l'apparence en local : ça permet de
   // l'appliquer instantanément à la prochaine ouverture, sans attendre que le
   // compte cloud réponde (et donc sans "flash" qui revient un instant aux
   // couleurs par défaut avant de reprendre les bonnes).
   try{ if(state.settings) localStorage.setItem('bible-tracker-settings-cache', JSON.stringify(state.settings)); }catch(e){}
   if(useCloud && cloudDocRef){
-    dernierEnvoiJSON = JSON.stringify(state);
-    cloudDocRef.set(state).catch(e=>{ console.error(e); setSyncBadge('error'); });
+    let aEnvoyer;
+    try{ aEnvoyer = nettoyerPourFirestore(state); }
+    catch(e){ console.error('Etat impossible à sauvegarder (JSON) :', e); return; }
+    dernierEnvoiJSON = JSON.stringify(aEnvoyer);
+    try{
+      cloudDocRef.set(aEnvoyer).catch(e=>{ console.error(e); setSyncBadge('error'); });
+    }catch(e){ console.error('Erreur immédiate lors de la sauvegarde cloud :', e); setSyncBadge('error'); }
   } else {
     try{ localStorage.setItem('bible-tracker-state-v2', JSON.stringify(state)); }
     catch(e){ console.error('erreur de sauvegarde', e); }
@@ -2057,7 +2096,7 @@ function printReport(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=15').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=16').catch(()=>{});
   });
 }
 

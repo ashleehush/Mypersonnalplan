@@ -2,12 +2,12 @@
    toujours chercher la dernière version des fichiers (donc plus jamais
    coincée sur une ancienne version). Le cache ne sert que de secours si
    jamais tu es hors-ligne. */
-const CACHE_NAME = "bible-tracker-shell-v15";
+const CACHE_NAME = "bible-tracker-shell-v16";
 const SHELL_FILES = [
   "./",
   "./index.html",
-  "./style.css",
-  "./script.js",
+  "./style.css?v=16",
+  "./script.js?v=16",
   "./firebase-config.js",
   "./video-config.js",
   "./music-config.js",
@@ -39,7 +39,11 @@ self.addEventListener("fetch", event=>{
   if(url.origin !== self.location.origin){ return; }
 
   event.respondWith(
-    fetch(event.request).then(res=>{
+    // "cache: no-store" force le navigateur à vraiment repasser par le réseau
+    // (et pas par sa propre mémoire cache HTTP) — sans ça, "réseau d'abord"
+    // pouvait quand même renvoyer une ancienne version mise en cache par le
+    // navigateur lui-même, malgré le service worker.
+    fetch(event.request.url, { cache: 'no-store' }).then(res=>{
       const copy = res.clone();
       caches.open(CACHE_NAME).then(cache=>cache.put(event.request, copy));
       return res;
