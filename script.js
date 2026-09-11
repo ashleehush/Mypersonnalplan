@@ -369,7 +369,9 @@ const POLICES = {
   times: '"Times New Roman",Times,serif',
   verdana: 'Verdana,Geneva,sans-serif',
   courier: '"Courier New",Courier,monospace',
-  comic: '"Comic Sans MS","Comic Sans",cursive'
+  comic: '"Comic Sans MS","Comic Sans",cursive',
+  arial: 'Arial,Helvetica,sans-serif',
+  gothique: '"UnifrakturMaguntia","Old English Text MT",serif'
 };
 const TAILLES_TEXTE = { petit:'14px', normal:'16px', grand:'18px', tresgrand:'21px' };
 function applyTypography(){
@@ -1995,6 +1997,32 @@ function closeMenu(){
   document.getElementById('menuOverlay').classList.remove('show');
 }
 
+/* Glisser du bord gauche de l'écran vers la droite, n'importe où dans
+   l'appli, pour ouvrir le menu — comme le geste "retour" de beaucoup
+   d'applis. Exclu volontairement sur les cartes de groupe, qui ont déjà
+   leur propre glissement (vers la gauche) pour les supprimer. */
+(function(){
+  const SEUIL_BORD = 24;
+  const SEUIL_DISTANCE = 60;
+  let depart = null;
+  document.addEventListener('touchstart', (e)=>{
+    if(e.target.closest('.groupe-carte-wrap')){ depart = null; return; }
+    const t = e.touches[0];
+    depart = (t.clientX <= SEUIL_BORD) ? { x: t.clientX, y: t.clientY } : null;
+  }, { passive:true });
+  document.addEventListener('touchend', (e)=>{
+    if(!depart) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - depart.x;
+    const dy = t.clientY - depart.y;
+    depart = null;
+    if(dx > SEUIL_DISTANCE && Math.abs(dy) < 60){
+      const menu = document.getElementById('sideMenu');
+      if(menu && !menu.classList.contains('open')) toggleMenu();
+    }
+  }, { passive:true });
+})();
+
 /* =========================================================================
    RAPPORT — un résumé lisible, affiché directement dans l'appli (pas
    seulement au moment d'imprimer), pour que ce soit concret à l'écran.
@@ -2256,6 +2284,7 @@ function ouvrirRejoindreGroupe(){
 function renderMesGroupes(){
   const el = document.getElementById('groupesListe');
   if(!el) return;
+  initGlisserPourSupprimer('groupesListe');
   if(!mesGroupes.length){
     el.innerHTML = '<div class="empty">Tu ne fais partie d\'aucun groupe pour l\'instant. Crées-en un, ou rejoins-en un avec un lien reçu.</div>';
     return;
@@ -2264,11 +2293,96 @@ function renderMesGroupes(){
     const puces = (g.members||[]).map(m=>
       '<span class="groupe-membre-chip"><span class="groupe-membre-dot" style="background:'+m.couleur+'"></span>'+echapperHtml(m.nom)+'</span>'
     ).join('');
-    return '<div class="groupe-carte" onclick="ouvrirGroupeById(\''+g.id+'\')">'
+    return '<div class="groupe-carte-wrap" data-group-id="'+g.id+'">'
+      + '<div class="groupe-carte-supprimer-strip" onclick="confirmerSuppressionGroupe(\''+g.id+'\')">🗑️<br>Supprimer</div>'
+      + '<div class="groupe-carte" onclick="ouvrirGroupeCarteClic(\''+g.id+'\')">'
+      + '<button type="button" class="groupe-carte-menu-btn" onclick="event.stopPropagation(); toggleMenuGroupeCarte(\''+g.id+'\')">⋮</button>'
       + '<div class="groupe-carte-nom">'+echapperHtml(g.nom)+'</div>'
       + '<div class="groupe-membres">'+puces+'</div>'
-      + '</div>';
+      + '<div class="groupe-carte-menu" id="menuCarte-'+g.id+'" hidden>'
+      + '<button type="button" onclick="event.stopPropagation(); confirmerSuppressionGroupe(\''+g.id+'\')">🗑️ Supprimer le groupe</button>'
+      + '</div>'
+      + '</div></div>';
   }).join('');
+}
+
+/* --- Menu "⋮" et glisser-à-gauche pour supprimer un groupe --- */
+function toggleMenuGroupeCarte(id){
+  document.querySelectorAll('.groupe-carte-menu').forEach(m=>{ if(m.id !== 'menuCarte-'+id) m.hidden = true; });
+  const menu = document.getElementById('menuCarte-'+id);
+  if(menu) menu.hidden = !menu.hidden;
+}
+document.addEventListener('click', (e)=>{
+  if(!e.target.closest('.groupe-carte-menu-btn') && !e.target.closest('.groupe-carte-menu')){
+    document.querySelectorAll('.groupe-carte-menu').forEach(m=> m.hidden = true);
+  }
+});
+function replierCarteGroupe(wrap){
+  wrap.classList.remove('glissee');
+  const carte = wrap.querySelector('.groupe-carte');
+  if(carte) carte.style.transform = 'translateX(0)';
+}
+function ouvrirGroupeCarteClic(id){
+  // Si la carte est actuellement glissée (bouton Supprimer visible), un tap
+  // dessus la remet juste en place au lieu d'ouvrir le groupe.
+  const wrap = document.querySelector('.groupe-carte-wrap[data-group-id="'+id+'"]');
+  if(wrap && wrap.classList.contains('glissee')){ replierCarteGroupe(wrap); return; }
+  ouvrirGroupeById(id);
+}
+function confirmerSuppressionGroupe(id){
+  document.querySelectorAll('.groupe-carte-menu').forEach(m=> m.hidden = true);
+  const g = mesGroupes.find(x=> x.id === id);
+  const nom = g ? g.nom : 'ce groupe';
+  if(!confirm('Supprimer définitivement le groupe « ' + nom + ' » et tout son historique ? Cette action est irréversible.')) return;
+  supprimerGroupe(id);
+}
+function supprimerGroupe(id){
+  firebase.firestore().collection('groups').doc(id).delete().then(()=>{
+    if(groupeActuel && groupeActuel.id === id) afficherVueListeGroupes();
+  }).catch(e=>{
+    console.error(e);
+    alert("Impossible de supprimer ce groupe pour l'instant (vérifie que tu es bien l'organisatrice, et ta connexion internet).");
+  });
+}
+// Glisser à gauche sur une carte de groupe pour révéler "Supprimer" — mis en
+// place UNE FOIS sur le conteneur (délégation tactile) : ça continue de
+// marcher même quand la liste est régénérée à chaque mise à jour.
+let swipeGroupeEnCours = null;
+function initGlisserPourSupprimer(conteneurId){
+  const conteneur = document.getElementById(conteneurId);
+  if(!conteneur || conteneur.__swipeInit) return;
+  conteneur.__swipeInit = true;
+  conteneur.addEventListener('touchstart', (e)=>{
+    const wrap = e.target.closest('.groupe-carte-wrap');
+    if(!wrap){ swipeGroupeEnCours = null; return; }
+    const t = e.touches[0];
+    swipeGroupeEnCours = { wrap: wrap, startX: t.clientX, startY: t.clientY, dejaGlissee: wrap.classList.contains('glissee'), carte: wrap.querySelector('.groupe-carte') };
+  }, { passive:true });
+  conteneur.addEventListener('touchmove', (e)=>{
+    if(!swipeGroupeEnCours) return;
+    const t = e.touches[0];
+    const dx = t.clientX - swipeGroupeEnCours.startX;
+    const dy = t.clientY - swipeGroupeEnCours.startY;
+    if(Math.abs(dy) > Math.abs(dx)) return; // défilement vertical : on n'interfère pas
+    const base = swipeGroupeEnCours.dejaGlissee ? -92 : 0;
+    const decalage = Math.max(-92, Math.min(0, base + dx));
+    swipeGroupeEnCours.carte.style.transition = 'none';
+    swipeGroupeEnCours.carte.style.transform = 'translateX(' + decalage + 'px)';
+    swipeGroupeEnCours.dernierDecalage = decalage;
+  }, { passive:true });
+  conteneur.addEventListener('touchend', ()=>{
+    if(!swipeGroupeEnCours) return;
+    const { wrap, carte, dernierDecalage } = swipeGroupeEnCours;
+    carte.style.transition = '';
+    if((dernierDecalage||0) < -46){
+      wrap.classList.add('glissee');
+      carte.style.transform = 'translateX(-92px)';
+    } else {
+      wrap.classList.remove('glissee');
+      carte.style.transform = 'translateX(0)';
+    }
+    swipeGroupeEnCours = null;
+  });
 }
 
 function creerGroupe(){
@@ -2591,10 +2705,13 @@ function renderSessionDetail(){
   document.getElementById('sessionEchangeInput').disabled = !!sessionActuelle.cloturee;
 
   const btnCloture = document.getElementById('groupeClotureBtn');
+  const btnContinuer = document.getElementById('groupeContinuerBtn');
   if(sessionActuelle.cloturee){
     btnCloture.hidden = true;
+    btnContinuer.hidden = !estLecture;
   } else {
     btnCloture.hidden = false;
+    btnContinuer.hidden = true;
   }
 
   renderPresence(sessionActuelle);
@@ -2617,9 +2734,40 @@ function onSessionLivreInput(el){
   clearTimeout(rechercheLivreTimer);
   if(!titre){ return; }
   document.getElementById('sessionLivreRecherche').hidden = false;
-  rechercheLivreTimer = setTimeout(()=> rechercherLivreGoogleBooks(titre), 700);
+  rechercheLivreTimer = setTimeout(()=> chercherLivre(titre), 700);
 }
-function rechercherLivreGoogleBooks(titre){
+// Réduit un titre à une clé stable (majuscules, sans accents, sans
+// ponctuation) pour le retrouver même s'il est retapé un peu différemment.
+function normaliserCleLivre(titre){
+  return String(titre || '').toUpperCase().trim()
+    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .replace(/[^A-Z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'LIVRE';
+}
+// 1) On regarde d'abord dans la mémoire commune de l'appli ("livresConnus") —
+//    alimentée par TOUT LE MONDE qui a déjà indiqué le nombre de pages d'un
+//    livre à la main. 2) Si le livre n'y est pas encore, on essaie la
+//    bibliothèque publique Google Books (qui connaît bien les livres très
+//    diffusés, mais souvent pas les livres chrétiens à tirage plus confidentiel).
+//    3) Sinon, la case "indique le nombre de pages" s'affiche.
+function chercherLivre(titre){
+  const cle = normaliserCleLivre(titre);
+  ecrireChampSession('livreKey', titre.toUpperCase());
+  try{
+    firebase.firestore().collection('livresConnus').doc(cle).get().then(doc=>{
+      const data = doc.exists ? doc.data() : null;
+      if(data && data.nombrePages){
+        document.getElementById('sessionLivreRecherche').hidden = true;
+        document.getElementById('sessionLivreTrouve').hidden = false;
+        document.getElementById('sessionLivrePagesValeur').textContent = data.nombrePages;
+        document.getElementById('sessionPagesManuelBox').hidden = true;
+        ecrireChampSession('nombrePages', data.nombrePages);
+      } else {
+        rechercherLivreGoogleBooks(titre, cle);
+      }
+    }).catch(()=> rechercherLivreGoogleBooks(titre, cle));
+  }catch(e){ rechercherLivreGoogleBooks(titre, cle); }
+}
+function rechercherLivreGoogleBooks(titre, cle){
   fetch('https://www.googleapis.com/books/v1/volumes?maxResults=1&q=' + encodeURIComponent(titre))
     .then(r=> r.json())
     .then(data=>{
@@ -2631,11 +2779,10 @@ function rechercherLivreGoogleBooks(titre){
         document.getElementById('sessionLivrePagesValeur').textContent = pages;
         document.getElementById('sessionPagesManuelBox').hidden = true;
         ecrireChampSession('nombrePages', pages);
-        ecrireChampSession('livreKey', titre.toUpperCase());
+        enregistrerLivreConnu(cle, titre, pages);
       } else {
         document.getElementById('sessionLivreTrouve').hidden = true;
         document.getElementById('sessionPagesManuelBox').hidden = false;
-        ecrireChampSession('livreKey', titre.toUpperCase());
       }
     })
     .catch(()=>{
@@ -2645,6 +2792,24 @@ function rechercherLivreGoogleBooks(titre){
       document.getElementById('sessionLivreTrouve').hidden = true;
       document.getElementById('sessionPagesManuelBox').hidden = false;
     });
+}
+// Mémorise durablement le nombre de pages d'un livre pour TOUT LE MONDE :
+// dès qu'une personne (dans n'importe quel groupe) l'indique une fois, elle
+// n'aura plus jamais besoin de le retaper — ni personne d'autre.
+function enregistrerLivreConnu(cle, titre, nombrePages){
+  if(!cle || !nombrePages) return;
+  try{
+    firebase.firestore().collection('livresConnus').doc(cle).set({
+      titre: String(titre || '').toUpperCase(), nombrePages: nombrePages, ajouteLe: new Date().toISOString()
+    }).catch(e=> console.error('Erreur de sauvegarde du livre connu :', e));
+  }catch(e){ console.error(e); }
+}
+function enregistrerPagesManuelles(el){
+  const val = parseInt(el.value, 10) || null;
+  majSessionChamp('nombrePages', val);
+  if(val && sessionActuelle && sessionActuelle.livre){
+    enregistrerLivreConnu(normaliserCleLivre(sessionActuelle.livre), sessionActuelle.livre, val);
+  }
 }
 function majSessionPageActuelle(v){
   const val = Math.max(0, parseInt(v,10) || 0);
@@ -2783,7 +2948,7 @@ function afficherRapportGroupe(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=18').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=19').catch(()=>{});
   });
 }
 

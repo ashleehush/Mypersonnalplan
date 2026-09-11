@@ -13,8 +13,8 @@
 <title>Suivi de lecture biblique</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Lato:ital,wght@0,400;0,700;1,400;1,700&family=Poppins:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Nunito:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=18">
+<link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Lato:ital,wght@0,400;0,700;1,400;1,700&family=Poppins:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Nunito:ital,wght@0,400;0,700;1,400;1,700&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css?v=19">
 </head>
 <body>
 
@@ -397,7 +397,7 @@
         </div>
         <div id="sessionPagesManuelBox" hidden>
           <label>Livre non reconnu — indique le nombre de pages</label>
-          <input type="number" id="sessionPagesManuelInput" min="1" onchange="majSessionChamp('nombrePages', parseInt(this.value,10)||null)">
+          <input type="number" id="sessionPagesManuelInput" min="1" onchange="enregistrerPagesManuelles(this)">
         </div>
 
         <label style="margin-top:14px;">Page actuelle du groupe</label>
@@ -421,6 +421,7 @@
       </div>
 
       <button id="groupeClotureBtn" onclick="cloturerRencontre()">✅ Clôturer cette rencontre</button>
+      <button id="groupeContinuerBtn" onclick="continuerLecture(sessionActuelle.id)" hidden>🔄 Continuer cette lecture (nouvelle rencontre)</button>
     </div>
 
   </div>
@@ -509,6 +510,8 @@
             <option value="verdana">Verdana</option>
             <option value="courier">Courier New</option>
             <option value="comic">Comic Sans MS</option>
+            <option value="arial">Arial</option>
+            <option value="gothique">Gothique</option>
           </select>
           <label style="margin-top:16px;">Style du texte</label>
           <select id="fontStyleSelect" onchange="setFontStyle(this.value)">
@@ -636,7 +639,7 @@
 <script src="video-config.js"></script>
 <script src="music-config.js"></script>
 <script src="livres-config.js"></script>
-<script src="script.js?v=18"></script>
+<script src="script.js?v=19"></script>
 <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>

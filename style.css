@@ -781,12 +781,32 @@
      cette règle, l'attribut "hidden" (même spécificité CSS) ne suffirait pas
      à le masquer une fois la classe appliquée. */
   #sessionLivreTrouve[hidden]{ display:none; }
+  .groupe-carte-wrap{ position:relative; overflow:hidden; border-radius:12px; margin-bottom:10px; }
+  .groupe-carte-supprimer-strip{
+    position:absolute; top:0; right:0; height:100%; width:92px; background:var(--red);
+    color:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    font-size:.68rem; font-weight:bold; text-align:center; cursor:pointer; line-height:1.5;
+  }
   .groupe-carte{
-    background:var(--cream-alt); border-radius:12px; padding:14px 16px; margin-bottom:10px;
-    border:1px solid #e0d8c0; cursor:pointer;
+    position:relative; background:var(--cream-alt); border-radius:12px; padding:14px 16px;
+    margin-bottom:0; border:1px solid #e0d8c0; cursor:pointer; transition:transform .2s ease;
+    touch-action:pan-y;
   }
   .groupe-carte:active{ opacity:.85; }
-  .groupe-carte-nom{ font-weight:bold; color:var(--khaki-dark); font-size:1rem; }
+  .groupe-carte-nom{ font-weight:bold; color:var(--khaki-dark); font-size:1rem; padding-right:24px; }
+  .groupe-carte-menu-btn{
+    position:absolute; top:6px; right:4px; background:none; border:none; color:var(--khaki-med);
+    font-size:1.3rem; line-height:1; padding:6px 10px; margin-top:0; cursor:pointer;
+  }
+  .groupe-carte-menu[hidden]{ display:none; }
+  .groupe-carte-menu{
+    position:absolute; top:36px; right:8px; background:var(--cream); border:1px solid #e0d8c0;
+    border-radius:8px; box-shadow:0 4px 14px rgba(0,0,0,.18); z-index:5; overflow:hidden;
+  }
+  .groupe-carte-menu button{
+    display:block; width:100%; text-align:left; background:none; color:var(--red); margin-top:0;
+    padding:10px 14px; border-radius:0; font-size:.8rem; white-space:nowrap;
+  }
   .groupe-membres{ display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
   .groupe-membre-chip{
     display:inline-flex; align-items:center; gap:6px; background:var(--cream);
