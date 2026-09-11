@@ -89,7 +89,6 @@ function verseVersionLinks(ref){
   return links;
 }
 const TOTAL_CHAPTERS = Object.values(chapters).reduce((a,b)=>a+b,0); // 1189
-const PLAN_DAYS = 66*30; // 1980
 
 const logLivreSelect = document.getElementById('logLivre');
 allBooks.forEach(b=>{
@@ -1115,24 +1114,24 @@ function totalRead(){
   return Object.values(state.readChapters).reduce((sum,s)=> sum + s.size, 0);
 }
 
+// Position actuelle : nombre de livres ENTIÈREMENT terminés parmi les 66,
+// peu importe l'ordre ou l'identité du livre (plus de notion de "livre en
+// cours dans le plan AT/NT en alternance"). Ex. : si seul Jonas est
+// terminé, le résultat est "1 livre sur 66".
 function currentPosition(){
-  for(const b of planOrder){
-    const lu = chaptersReadCount(b);
-    if(lu < chapters[b]) return { livre:b, lu, total:chapters[b] };
-  }
-  return null; // les 66 livres sont terminés
+  const total = planOrder.length;
+  const livresTermines = planOrder.filter(b => chaptersReadCount(b) >= chapters[b]);
+  return { nbTermines: livresTermines.length, total: total, livresTermines: livresTermines };
 }
 
 function renderPosition(){
   const box = document.getElementById('positionCurrent');
   if(!box) return;
   const pos = currentPosition();
-  if(!pos){
-    box.textContent = "🎉 Bravo, tu as terminé les 66 livres du plan !";
+  if(pos.nbTermines >= pos.total){
+    box.textContent = "🎉 Bravo, tu as terminé les 66 livres de la Bible !";
   } else {
-    const pct = Math.round((pos.lu/pos.total)*100);
-    box.innerHTML = "Tu es actuellement sur <strong>" + pos.livre + "</strong> — "
-      + pos.lu + " / " + pos.total + " chapitres lus (" + pct + "%).";
+    box.innerHTML = "Position actuelle : <strong>" + pos.nbTermines + " livre" + (pos.nbTermines>1?"s":"") + " sur " + pos.total + "</strong> entièrement lu" + (pos.nbTermines>1?"s":"") + ".";
   }
   const list = document.getElementById('positionList');
   if(!list) return;
@@ -1167,8 +1166,11 @@ function compute(){
     banner.textContent = "🕊 PAS ENCORE DÉBUTÉ — début prévu le " + fmtDate(planStart);
     detail.textContent = "Ton parcours commence le " + fmtDate(planStart);
   } else {
+    // Objectif : 1 chapitre par jour, quel que soit le livre — plus de
+    // rythme calé sur un plan "66 mois, un livre AT / un livre NT en
+    // alternance". 1 jour écoulé = 1 chapitre attendu, tout simplement.
     const joursEcoules = daysBetween(planStart, today);
-    const attendu = Math.min(Math.floor(joursEcoules*TOTAL_CHAPTERS/PLAN_DAYS), TOTAL_CHAPTERS);
+    const attendu = Math.min(joursEcoules, TOTAL_CHAPTERS);
     const ecart = attendu - lus;
     if(ecart > 0){
       banner.className = "banner late";
@@ -1180,7 +1182,7 @@ function compute(){
       banner.className = "banner ok";
       banner.textContent = "✓ EN AVANCE DE " + (-ecart) + " CHAPITRE(S) (global)";
     }
-    detail.textContent = "Objectif global : ~" + attendu + " chapitres attendus au total  ·  Tu en as lu " + lus;
+    detail.textContent = "Objectif : 1 chapitre par jour, peu importe le livre  ·  ~" + attendu + " chapitres attendus au total  ·  Tu en as lu " + lus;
   }
 
   renderReminder(today);
@@ -2118,9 +2120,9 @@ function renderRapportPreview(){
   const lus = totalRead();
   const taux = ((lus/TOTAL_CHAPTERS)*100).toFixed(2);
   const pos = currentPosition();
-  const posTxt = pos ? (pos.livre + " (" + pos.lu + "/" + pos.total + " chapitres)") : "Plan terminé 🎉";
+  const posTxt = pos.nbTermines + " livre" + (pos.nbTermines>1?"s":"") + " sur " + pos.total;
   const totalPages = Math.round((lus/TOTAL_CHAPTERS)*1200);
-  const livresLus = planOrder.filter(b=> chaptersReadCount(b) >= chapters[b]).length;
+  const livresLus = pos.nbTermines;
 
   const plansProgress = THEMATIC_PLANS.map(plan=>{
     const done = (state.thematicProgress && state.thematicProgress[plan.id]) || [];
@@ -2948,7 +2950,7 @@ function afficherRapportGroupe(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=19').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=20').catch(()=>{});
   });
 }
 
