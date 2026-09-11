@@ -3292,7 +3292,7 @@ function afficherRapportGroupe(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=24').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=25').catch(()=>{});
   });
 }
 
