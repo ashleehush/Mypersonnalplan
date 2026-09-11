@@ -11,10 +11,10 @@
    ========================================================================= */
 
 const firebaseConfig = {
-  apiKey: "COLLE_ICI_TA_apiKey",
-  authDomain: "COLLE_ICI_TON_authDomain",
-  projectId: "COLLE_ICI_TON_projectId",
-  storageBucket: "COLLE_ICI_TON_storageBucket",
-  messagingSenderId: "COLLE_ICI_TON_messagingSenderId",
-  appId: "COLLE_ICI_TON_appId"
+  apiKey: "AIzaSyCRyxI9sUhOJLdyiGiCI-5CqqTozLvG-QE",
+  authDomain: "mybibleplan-38412.firebaseapp.com",
+  projectId: "mybibleplan-38412",
+  storageBucket: "mybibleplan-38412.firebasestorage.app",
+  messagingSenderId: "134667046555",
+  appId: "1:134667046555:web:67db02e3b2608d9d78003e"
 };
