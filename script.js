@@ -2925,6 +2925,24 @@ function copierLienInvitation(){
   }
 }
 
+/* Partage général de l'appli (pas lié à un groupe précis) : depuis Paramètres,
+   pour simplement faire découvrir l'appli à quelqu'un. */
+function partagerAppli(){
+  const lien = window.location.origin + window.location.pathname.replace(/[^/]*$/, '');
+  const texte = "Découvre l'appli que j'utilise pour suivre ma lecture de la Bible : " + lien;
+  if(navigator.share){
+    navigator.share({ title:"Suivi de lecture biblique", text: texte, url: lien }).catch(()=>{});
+    return;
+  }
+  const msg = document.getElementById('partageCopieMsg');
+  const fini = ()=>{ if(msg){ msg.textContent = 'Lien copié ! Tu peux le coller dans un message.'; msg.hidden = false; setTimeout(()=> msg.hidden = true, 4000); } };
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(lien).then(fini).catch(fini);
+  } else {
+    fini();
+  }
+}
+
 function onGroupeTypeChange(){
   const v = document.getElementById('groupeTypeSelect').value;
   document.getElementById('groupeDemarrerBtn').hidden = !v;
@@ -3314,7 +3332,7 @@ function afficherRapportGroupe(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=26').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=27').catch(()=>{});
   });
 }
 

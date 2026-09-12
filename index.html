@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Lato:ital,wght@0,400;0,700;1,400;1,700&family=Poppins:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Nunito:ital,wght@0,400;0,700;1,400;1,700&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=26">
+<link rel="stylesheet" href="style.css?v=27">
 </head>
 <body>
 
@@ -525,6 +525,17 @@
 
     <div class="card">
       <details>
+        <summary>📤 Partager l'appli</summary>
+        <div style="margin-top:14px;">
+          <p class="subnote" style="margin-top:0;">Fais découvrir l'appli à tes proches — ce lien les amène directement dessus, pas besoin d'installer quoi que ce soit pour l'essayer.</p>
+          <button onclick="partagerAppli()">📤 Partager avec des amis</button>
+          <p id="partageCopieMsg" class="security-message" hidden style="margin-top:10px;"></p>
+        </div>
+      </details>
+    </div>
+
+    <div class="card">
+      <details>
         <summary>🎨 Apparence</summary>
         <div style="margin-top:14px;">
           <label>Palette de couleurs</label>
@@ -705,7 +716,7 @@
 <script src="video-config.js"></script>
 <script src="music-config.js"></script>
 <script src="livres-config.js"></script>
-<script src="script.js?v=26"></script>
+<script src="script.js?v=27"></script>
 <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>
