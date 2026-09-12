@@ -14,7 +14,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Lato:ital,wght@0,400;0,700;1,400;1,700&family=Poppins:ital,wght@0,400;0,700;1,400;1,700&family=Merriweather:ital,wght@0,400;0,700;1,400;1,700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&family=Nunito:ital,wght@0,400;0,700;1,400;1,700&family=UnifrakturMaguntia&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=27">
+<link rel="stylesheet" href="style.css?v=28">
 </head>
 <body>
 
@@ -136,6 +136,7 @@
 <nav id="sideMenu" class="side-menu no-print">
   <div class="side-menu-title">Menu</div>
   <button data-page="accueil" class="active" onclick="showPage('accueil')">🏠 Accueil</button>
+  <button data-page="vision-board" onclick="showPage('vision-board')">🌟 Vision Board</button>
   <button data-page="journal-chapitres" onclick="showPage('journal-chapitres')">📘 Journal des chapitres</button>
   <button data-page="journal-comprehension" onclick="showPage('journal-comprehension')">📖 Mes notes</button>
   <button data-page="prieres" onclick="showPage('prieres')">🙏 Mon journal</button>
@@ -224,35 +225,74 @@
     <div class="kpi pages"><div class="label">Pages rest.</div><div class="value" id="kpiPages">-</div></div>
   </div>
 
-  <div class="card">
-    <h2>📍 Ma position actuelle</h2>
-    <div class="position-row">
-      <div class="donut-wrap donut-wrap-small"><svg id="donut" width="62" height="62" viewBox="0 0 160 160"></svg></div>
-      <div id="positionCurrent" class="detail" style="margin-top:0;"></div>
+  <div class="card-row-2col">
+    <div class="card compact" id="positionCard">
+      <h2>📍 Position</h2>
+      <div class="position-row">
+        <div class="donut-wrap donut-wrap-tiny"><svg id="donut" width="62" height="62" viewBox="0 0 160 160"></svg></div>
+        <div id="positionCurrent" class="detail" style="margin-top:0;"></div>
+      </div>
+      <details class="compact-details">
+        <summary>Voir les 66 livres</summary>
+        <div id="positionList" style="margin-top:8px; max-height:280px; overflow-y:auto;"></div>
+      </details>
     </div>
-    <details style="margin-top:6px;">
-      <summary>Voir le détail des 66 livres</summary>
-      <div id="positionList" style="margin-top:8px; max-height:280px; overflow-y:auto;"></div>
-    </details>
+
+    <div class="card compact" id="objectifCard">
+      <h2>🎯 Objectif du jour</h2>
+      <div class="banner banner-compact" id="banner">...</div>
+      <details class="compact-details">
+        <summary>Voir le détail</summary>
+        <div class="detail" id="detail"></div>
+        <div class="reminder" id="reminder" style="display:none;"></div>
+      </details>
+    </div>
   </div>
 
-  <div class="card-row">
-    <div class="card" id="booksCard" style="display:none;">
-      <h2>📚 Suggestion de lecture chrétienne</h2>
+  <div class="card-row-2col">
+    <div class="card compact" id="booksCard" style="display:none;">
+      <h2>📚 Lecture chrétienne</h2>
       <div id="bookOfDay"></div>
     </div>
+
+    <div class="card compact" id="videoCard" style="display:none;">
+      <h2>🎥 Message du jour</h2>
+      <div id="videoOfDay"></div>
+    </div>
   </div>
 
-  <div class="card">
-    <h2>🎯 Objectif du jour (global)</h2>
-    <div class="banner" id="banner">...</div>
-    <div class="detail" id="detail"></div>
-    <div class="reminder" id="reminder" style="display:none;"></div>
+  <div class="card compact" id="visionBoardPreviewCard">
+    <h2>🌟 Vision Board</h2>
+    <div id="visionBoardPreview"></div>
   </div>
 
-  <div class="card" id="videoCard" style="display:none;">
-    <h2>🎥 Message du jour</h2>
-    <div id="videoOfDay"></div>
+</section>
+
+<!-- VISION BOARD -->
+<section id="page-vision-board" class="page" hidden>
+
+  <div id="visionBoardSansCloud" class="card">
+    <h2>🌟 Vision Board</h2>
+    <div class="empty">Connecte-toi à ton compte (onglet Paramètres → Sécurité) pour utiliser le Vision Board : tes images sont gardées en ligne pour ne jamais les perdre.</div>
+  </div>
+
+  <div id="visionBoardContenu" hidden>
+    <div class="card">
+      <h2>🌟 Ajouter à mon Vision Board</h2>
+      <div class="subnote">Une image, un titre, le verset qui l'accompagne, et la date à laquelle tu attends que ça se réalise — pour le voir et le confesser chaque jour.</div>
+      <label>Image (photo, PNG, JPEG ou PDF)</label>
+      <input type="file" id="vbImageInput" accept="image/*,.pdf">
+      <label>Titre</label>
+      <input type="text" id="vbTitreInput" placeholder="Ex. Ma maison">
+      <label>Verset lié</label>
+      <textarea id="vbVerseInput" placeholder="Ex. Marc 11:24 — Tout ce que vous demanderez..."></textarea>
+      <label>Date attendue</label>
+      <input type="date" id="vbDateInput">
+      <button onclick="ajouterVisionBoard()" id="vbAjouterBtn">➕ Ajouter à mon Vision Board</button>
+      <div id="vbMsg" class="security-message" hidden></div>
+    </div>
+
+    <div id="visionBoardListe"></div>
   </div>
 
 </section>
@@ -712,11 +752,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.2/firebase-storage-compat.js"></script>
 <script src="firebase-config.js"></script>
 <script src="video-config.js"></script>
 <script src="music-config.js"></script>
 <script src="livres-config.js"></script>
-<script src="script.js?v=27"></script>
+<script src="script.js?v=28"></script>
 <script src="https://www.youtube.com/iframe_api"></script>
 </body>
 </html>

@@ -223,6 +223,55 @@
   .audio-info{ font-size:.85rem; font-weight:bold; color:var(--khaki-dark); }
   .card-row{ display:flex; flex-wrap:wrap; gap:14px; }
   .card-row > .card{ flex:1 1 260px; margin-bottom:14px; }
+
+  /* --- Ajouts : accueil compact (2 colonnes garanties) + Vision Board --- */
+  .card-row-2col{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+  .card-row-2col > .card{ margin-bottom:0; min-width:0; }
+  .card.compact{ padding:12px 10px; }
+  .card.compact h2{ font-size:.85rem; margin-bottom:6px; line-height:1.25; }
+  .donut-wrap-tiny{ margin:4px 0; }
+  .donut-wrap-tiny svg{ width:52px; height:52px; }
+  .banner-compact{ font-size:.72rem; padding:8px; line-height:1.3; }
+  .compact-details summary{
+    font-size:.72rem; color:var(--khaki-dark); font-weight:bold; cursor:pointer; margin-top:6px;
+    list-style:none;
+  }
+  .compact-details summary::-webkit-details-marker{ display:none; }
+  .compact-details summary::before{ content:"▸ "; }
+  .compact-details[open] summary::before{ content:"▾ "; }
+  .compact-details .detail{ font-size:.78rem; }
+  #booksCard .book-suggestion, #videoCard .video-wrap{ font-size:.8rem; }
+
+  .vb-grid{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:10px; }
+  .vb-entry{
+    background:var(--cream); border:1px solid #e5dcc0; border-radius:10px; overflow:hidden;
+    position:relative; display:flex; flex-direction:column;
+  }
+  .vb-entry-img{
+    width:100%; aspect-ratio:1/1; object-fit:cover; background:var(--cream-alt); display:block;
+  }
+  .vb-entry-body{ padding:8px 9px 10px; }
+  .vb-entry-titre{ font-weight:bold; font-size:.82rem; color:var(--khaki-dark); margin-bottom:2px; }
+  .vb-entry-verset{ font-size:.72rem; color:var(--taupe); font-style:italic; margin-bottom:4px; line-height:1.3; }
+  .vb-entry-date{ font-size:.68rem; color:var(--olive); font-weight:bold; }
+  .vb-entry-date.passee{ color:var(--red); }
+  .vb-entry .del{
+    position:absolute; top:6px; right:8px; background:rgba(255,255,255,.85); color:var(--red);
+    border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center;
+    font-size:.8rem; cursor:pointer; float:none;
+  }
+  .vb-preview-row{ display:flex; gap:8px; overflow-x:auto; padding-bottom:2px; }
+  .vb-preview-item{ flex:0 0 auto; width:64px; text-align:center; }
+  .vb-preview-item img{
+    width:64px; height:64px; object-fit:cover; border-radius:8px; border:1px solid #e5dcc0; display:block;
+  }
+  .vb-preview-item .vb-preview-date{ font-size:.62rem; color:var(--taupe); margin-top:2px; }
+  .vb-preview-item .vb-preview-date.passee{ color:var(--red); }
+
+  @media (max-width:360px){
+    .card-row-2col{ grid-template-columns:1fr; }
+    .vb-grid{ grid-template-columns:1fr; }
+  }
   .book-suggestion{ padding:8px 0; border-bottom:1px solid #e0d8c0; display:flex; align-items:center; gap:10px; }
   .book-suggestion:last-child{ border-bottom:none; }
   #bookOfDay .book-suggestion{ border-bottom:none; padding:0; }

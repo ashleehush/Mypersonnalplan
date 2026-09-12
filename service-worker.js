@@ -2,12 +2,12 @@
    toujours chercher la dernière version des fichiers (donc plus jamais
    coincée sur une ancienne version). Le cache ne sert que de secours si
    jamais tu es hors-ligne. */
-const CACHE_NAME = "bible-tracker-shell-v27";
+const CACHE_NAME = "bible-tracker-shell-v28";
 const SHELL_FILES = [
   "./",
   "./index.html",
-  "./style.css?v=27",
-  "./script.js?v=27",
+  "./style.css?v=28",
+  "./script.js?v=28",
   "./firebase-config.js",
   "./video-config.js",
   "./music-config.js",

@@ -982,6 +982,8 @@ document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState 
 let useCloud = false;
 let cloudDocRef = null;
 let currentUser = null;
+let visionBoardEntries = [];
+let visionBoardUnsub = null;
 // Mémorise le contenu exact du dernier envoi vers le cloud : quand un
 // "snapshot" arrive avec EXACTEMENT ce contenu, c'est juste l'écho de notre
 // propre écriture (rien de nouveau à appliquer). On compare le CONTENU plutôt
@@ -1061,6 +1063,7 @@ function initCloudIfConfigured(){
         // quelconque, ça ne doit JAMAIS empêcher le reste de l'appli (tes
         // lectures, prières, réglages...) de se synchroniser normalement.
         try{ initGroupes(user); }catch(e){ console.error('Erreur au démarrage de "En groupe" :', e); }
+        try{ demarrerVisionBoard(user); }catch(e){ console.error('Erreur au démarrage du Vision Board :', e); }
         cloudDocRef = firebase.firestore().collection('users').doc(user.uid).collection('state').doc('main');
         setSyncBadge('connecting');
         cloudDocRef.onSnapshot(snap=>{
@@ -1121,6 +1124,7 @@ function initCloudIfConfigured(){
         useCloud = false;
         currentUser = null;
         arreterGroupes();
+        arreterVisionBoard();
         arreterSuiviActivite();
         pickLoginTheme();
         const navAdminBtnOut = document.getElementById('navAdminBtn');
@@ -2335,6 +2339,7 @@ function showPage(id){
   if(id === 'parametres') updateNotifUI();
   if(id === 'en-groupe') afficherVueListeGroupes();
   if(id === 'admin'){ renderAvisAdmin(); renderUsersAdmin(); renderSuggestionsAdmin(); }
+  if(id === 'vision-board') renderVisionBoard();
   updateMusicBarVisibility();
   closeMenu();
   window.scrollTo(0,0);
@@ -2623,6 +2628,167 @@ function arreterGroupes(){
   const contenu = document.getElementById('groupeContenu');
   if(sansCloud) sansCloud.hidden = false;
   if(contenu) contenu.hidden = true;
+}
+
+/* =========================================================================
+   VISION BOARD — images perso + verset + date attendue, une par une.
+   Nécessite le cloud (comme "En groupe") : stockage des images dans
+   Firebase Storage, sous visionBoard/{uid}/{entryId}_{nomFichier}.
+   ========================================================================= */
+function demarrerVisionBoard(user){
+  const sansCloud = document.getElementById('visionBoardSansCloud');
+  const contenu = document.getElementById('visionBoardContenu');
+  if(sansCloud) sansCloud.hidden = true;
+  if(contenu) contenu.hidden = false;
+
+  if(visionBoardUnsub){ visionBoardUnsub(); visionBoardUnsub = null; }
+  try{
+    visionBoardUnsub = firebase.firestore().collection('users').doc(user.uid)
+      .collection('visionBoard')
+      .onSnapshot(snap=>{
+        visionBoardEntries = snap.docs.map(d=> Object.assign({id:d.id}, d.data()));
+        visionBoardEntries.sort((a,b)=> String(a.dateAttendue||'9999').localeCompare(String(b.dateAttendue||'9999')));
+        renderVisionBoard();
+        renderVisionBoardPreview();
+      }, err=> console.error('Erreur de lecture du Vision Board :', err));
+  }catch(e){ console.error('Erreur au démarrage du Vision Board :', e); }
+}
+function arreterVisionBoard(){
+  if(visionBoardUnsub){ visionBoardUnsub(); visionBoardUnsub = null; }
+  visionBoardEntries = [];
+  const sansCloud = document.getElementById('visionBoardSansCloud');
+  const contenu = document.getElementById('visionBoardContenu');
+  if(sansCloud) sansCloud.hidden = false;
+  if(contenu) contenu.hidden = true;
+  const preview = document.getElementById('visionBoardPreviewCard');
+  if(preview) preview.style.display = 'none';
+}
+
+function vbDateClass(dateAttendue){
+  if(!dateAttendue) return '';
+  return (dateAttendue < todayStr()) ? 'passee' : '';
+}
+function vbDateLabel(dateAttendue){
+  if(!dateAttendue) return '';
+  const d = new Date(dateAttendue + 'T00:00:00');
+  if(isNaN(d)) return dateAttendue;
+  return d.toLocaleDateString('fr-FR', {day:'2-digit', month:'short', year:'numeric'});
+}
+function vbThumbHTML(entry){
+  if(entry.contentType && entry.contentType.indexOf('pdf') !== -1){
+    return '<div class="vb-entry-img" style="display:flex;align-items:center;justify-content:center;font-size:2rem;">📄</div>';
+  }
+  return '<img class="vb-entry-img" src="'+ (entry.imageUrl||'') +'" alt="">';
+}
+
+function renderVisionBoard(){
+  const liste = document.getElementById('visionBoardListe');
+  if(!liste) return;
+  if(!useCloud){ liste.innerHTML = ''; return; }
+  if(!visionBoardEntries.length){
+    liste.innerHTML = '<div class="card"><div class="empty">Rien pour l\'instant — ajoute ta première image ci-dessus.</div></div>';
+    return;
+  }
+  liste.innerHTML = '<div class="card"><h2>🌟 Mon Vision Board</h2><div class="vb-grid">'
+    + visionBoardEntries.map(e=>{
+        return '<div class="vb-entry">'
+          + '<span class="del" onclick="supprimerVisionBoard(\''+e.id+'\')">✕</span>'
+          + vbThumbHTML(e)
+          + '<div class="vb-entry-body">'
+          + '<div class="vb-entry-titre">'+ echapperHtml(e.titre||'') +'</div>'
+          + (e.verset ? '<div class="vb-entry-verset">'+ echapperHtml(e.verset) +'</div>' : '')
+          + (e.dateAttendue ? '<div class="vb-entry-date '+vbDateClass(e.dateAttendue)+'">📅 '+vbDateLabel(e.dateAttendue)+'</div>' : '')
+          + '</div></div>';
+      }).join('')
+    + '</div></div>';
+}
+
+function renderVisionBoardPreview(){
+  const card = document.getElementById('visionBoardPreviewCard');
+  const preview = document.getElementById('visionBoardPreview');
+  if(!card || !preview) return;
+  if(!useCloud || !visionBoardEntries.length){
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = '';
+  preview.innerHTML = '<div class="vb-preview-row">'
+    + visionBoardEntries.slice(0,8).map(e=>{
+        const thumb = (e.contentType && e.contentType.indexOf('pdf') !== -1)
+          ? '<div style="width:64px;height:64px;border-radius:8px;border:1px solid #e5dcc0;display:flex;align-items:center;justify-content:center;font-size:1.6rem;background:var(--cream-alt);">📄</div>'
+          : '<img src="'+(e.imageUrl||'')+'" alt="">';
+        return '<div class="vb-preview-item" onclick="showPage(\'vision-board\')">'
+          + thumb
+          + (e.dateAttendue ? '<div class="vb-preview-date '+vbDateClass(e.dateAttendue)+'">'+vbDateLabel(e.dateAttendue)+'</div>' : '')
+          + '</div>';
+      }).join('')
+    + '</div>';
+}
+
+function vbMsgAfficher(texte, estErreur){
+  const msg = document.getElementById('vbMsg');
+  if(!msg) return;
+  msg.textContent = texte;
+  msg.className = 'security-message' + (estErreur ? ' security-message-error' : '');
+  msg.hidden = false;
+  if(!estErreur) setTimeout(()=>{ msg.hidden = true; }, 4000);
+}
+
+function ajouterVisionBoard(){
+  if(!useCloud || !currentUser){ return; }
+  const fileInput = document.getElementById('vbImageInput');
+  const titreInput = document.getElementById('vbTitreInput');
+  const verseInput = document.getElementById('vbVerseInput');
+  const dateInput = document.getElementById('vbDateInput');
+  const btn = document.getElementById('vbAjouterBtn');
+  const file = fileInput && fileInput.files && fileInput.files[0];
+  const titre = (titreInput.value||'').trim();
+  const verset = (verseInput.value||'').trim();
+  const dateAttendue = dateInput.value || '';
+
+  if(!file){ vbMsgAfficher('Choisis une image ou un PDF avant d\'ajouter.', true); return; }
+  if(!titre){ vbMsgAfficher('Donne un titre à cette image.', true); return; }
+  if(file.size > 8*1024*1024){ vbMsgAfficher('Ce fichier est trop lourd (max 8 Mo).', true); return; }
+
+  if(btn){ btn.disabled = true; btn.textContent = 'Ajout en cours…'; }
+
+  const entryId = firebase.firestore().collection('users').doc(currentUser.uid).collection('visionBoard').doc().id;
+  const cheminStockage = 'visionBoard/' + currentUser.uid + '/' + entryId + '_' + file.name;
+  const storageRef = firebase.storage().ref(cheminStockage);
+
+  storageRef.put(file).then(snap=> snap.ref.getDownloadURL()).then(url=>{
+    return firebase.firestore().collection('users').doc(currentUser.uid).collection('visionBoard').doc(entryId).set({
+      titre, verset, dateAttendue,
+      imageUrl: url,
+      imagePath: cheminStockage,
+      contentType: file.type || '',
+      createdAt: Date.now()
+    });
+  }).then(()=>{
+    fileInput.value = '';
+    titreInput.value = '';
+    verseInput.value = '';
+    dateInput.value = '';
+    vbMsgAfficher('Ajouté à ton Vision Board ✅', false);
+  }).catch(e=>{
+    console.error('Erreur d\'ajout au Vision Board :', e);
+    vbMsgAfficher('Impossible d\'ajouter cette image pour le moment. Réessaie.', true);
+  }).finally(()=>{
+    if(btn){ btn.disabled = false; btn.textContent = '➕ Ajouter à mon Vision Board'; }
+  });
+}
+
+function supprimerVisionBoard(entryId){
+  if(!useCloud || !currentUser) return;
+  if(!confirm('Supprimer cette image de ton Vision Board ?')) return;
+  const entry = visionBoardEntries.find(e=> e.id === entryId);
+  firebase.firestore().collection('users').doc(currentUser.uid).collection('visionBoard').doc(entryId).delete()
+    .then(()=>{
+      if(entry && entry.imagePath){
+        firebase.storage().ref(entry.imagePath).delete().catch(()=>{});
+      }
+    })
+    .catch(e=> console.error('Erreur de suppression Vision Board :', e));
 }
 
 /* --- Vue 1 : liste des groupes --- */
@@ -3332,7 +3498,7 @@ function afficherRapportGroupe(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=27').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=28').catch(()=>{});
   });
 }
 
