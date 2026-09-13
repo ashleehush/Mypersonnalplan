@@ -2734,6 +2734,47 @@ function vbMsgAfficher(texte, estErreur){
   if(!estErreur) setTimeout(()=>{ msg.hidden = true; }, 4000);
 }
 
+const VB_MAX_PAR_PERSONNE = 30;
+
+/* Réduit une photo côté téléphone avant l'envoi (comme WhatsApp) : on la
+   redimensionne (jamais plus grand que 1600px sur le plus grand côté) et on
+   la recompresse en JPEG qualité 75% — le poids est divisé par environ 5 à
+   10 selon la photo d'origine, pour une qualité visuelle qui reste bonne à
+   l'écran. Les PDF ne sont pas concernés (on ne peut pas les "compresser"
+   de la même façon) : ils partent tels quels. En cas de souci (photo
+   corrompue, navigateur qui bloque), on renvoie le fichier d'origine plutôt
+   que de bloquer l'ajout. */
+function compresserImageAvantEnvoi(file, maxDim, qualite){
+  if(!file.type || file.type.indexOf('image/') !== 0){
+    return Promise.resolve(file);
+  }
+  return new Promise(resolve=>{
+    try{
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = ()=>{
+        let w = img.width, h = img.height;
+        if(w > maxDim || h > maxDim){
+          if(w >= h){ h = Math.round(h * maxDim / w); w = maxDim; }
+          else { w = Math.round(w * maxDim / h); h = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(blob=>{
+          if(!blob){ resolve(file); return; }
+          const nomCompresse = file.name.replace(/\.[^.]+$/, '') + '.jpg';
+          resolve(new File([blob], nomCompresse, {type:'image/jpeg'}));
+        }, 'image/jpeg', qualite);
+      };
+      img.onerror = ()=>{ URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    }catch(e){ console.error('Compression image impossible :', e); resolve(file); }
+  });
+}
+
 function ajouterVisionBoard(){
   if(!useCloud || !currentUser){ return; }
   const fileInput = document.getElementById('vbImageInput');
@@ -2746,6 +2787,10 @@ function ajouterVisionBoard(){
   const verset = (verseInput.value||'').trim();
   const dateAttendue = dateInput.value || '';
 
+  if(visionBoardEntries.length >= VB_MAX_PAR_PERSONNE){
+    vbMsgAfficher('Tu as atteint la limite de ' + VB_MAX_PAR_PERSONNE + ' éléments dans ton Vision Board. Supprimes-en un pour en ajouter un nouveau.', true);
+    return;
+  }
   if(!file){ vbMsgAfficher('Choisis une image ou un PDF avant d\'ajouter.', true); return; }
   if(!titre){ vbMsgAfficher('Donne un titre à cette image.', true); return; }
   if(file.size > 8*1024*1024){ vbMsgAfficher('Ce fichier est trop lourd (max 8 Mo).', true); return; }
@@ -2753,16 +2798,18 @@ function ajouterVisionBoard(){
   if(btn){ btn.disabled = true; btn.textContent = 'Ajout en cours…'; }
 
   const entryId = firebase.firestore().collection('users').doc(currentUser.uid).collection('visionBoard').doc().id;
-  const cheminStockage = 'visionBoard/' + currentUser.uid + '/' + entryId + '_' + file.name;
-  const storageRef = firebase.storage().ref(cheminStockage);
 
-  storageRef.put(file).then(snap=> snap.ref.getDownloadURL()).then(url=>{
-    return firebase.firestore().collection('users').doc(currentUser.uid).collection('visionBoard').doc(entryId).set({
-      titre, verset, dateAttendue,
-      imageUrl: url,
-      imagePath: cheminStockage,
-      contentType: file.type || '',
-      createdAt: Date.now()
+  compresserImageAvantEnvoi(file, 1600, 0.75).then(fichierAEnvoyer=>{
+    const cheminStockage = 'visionBoard/' + currentUser.uid + '/' + entryId + '_' + fichierAEnvoyer.name;
+    const storageRef = firebase.storage().ref(cheminStockage);
+    return storageRef.put(fichierAEnvoyer).then(snap=> snap.ref.getDownloadURL()).then(url=>{
+      return firebase.firestore().collection('users').doc(currentUser.uid).collection('visionBoard').doc(entryId).set({
+        titre, verset, dateAttendue,
+        imageUrl: url,
+        imagePath: cheminStockage,
+        contentType: fichierAEnvoyer.type || '',
+        createdAt: Date.now()
+      });
     });
   }).then(()=>{
     fileInput.value = '';
@@ -3498,7 +3545,7 @@ function afficherRapportGroupe(){
 
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{
-    navigator.serviceWorker.register('service-worker.js?v=28').catch(()=>{});
+    navigator.serviceWorker.register('service-worker.js?v=29').catch(()=>{});
   });
 }
 
